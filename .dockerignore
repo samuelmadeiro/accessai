@@ -1,0 +1,33 @@
+# O contexto de build e a RAIZ do repositorio (ver backend/Dockerfile), entao
+# tudo que nao entra na imagem precisa ser barrado aqui — nao por velocidade, e
+# sim porque o contexto inteiro e enviado ao daemon Docker.
+#
+# O item que importa e datasets/corpus/raw/: documento publico real com dado
+# pessoal (nome, CPF, matricula). A condicao C-3 decidiu nao versionar esses
+# binarios; manda-los ao daemon a cada build seria contornar a propria decisao.
+
+datasets/corpus/raw/
+
+# Build
+target/
+*.jar
+*.class
+
+# Controle de versao e IDE
+.git/
+.gitignore
+.idea/
+*.iml
+
+# Credenciais
+.env
+
+# Spike: projeto descartavel, nao entra na imagem
+spike/
+
+# Temporarios
+*.log
+*.tmp
+*~
+.DS_Store
+Thumbs.db

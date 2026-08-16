@@ -1,0 +1,43 @@
+{
+  "leiaAntes": [
+    "Tabela de referencia versionada citada em CLAUDE.md secao 6. Nenhuma regra",
+    "escreve criterio, nivel ou numeracao em codigo: tudo vem daqui.",
+    "",
+    "A base normativa e o WCAG2ICT (condicao C-1 de docs/architecture/fase-0.md).",
+    "O WCAG2ICT e uma W3C Group Note INFORMATIVA: nao e norma e nao estabelece",
+    "requisitos de conformidade. Ele descreve como cada criterio da WCAG se",
+    "aplica a documento nao-web, incluindo as substituicoes de termo.",
+    "",
+    "Esta tabela contem apenas os criterios efetivamente usados pelas regras",
+    "implementadas. Criterio sem regra correspondente nao entra: tabela",
+    "especulativa e convite a citar criterio que ninguem verificou.",
+    "",
+    "Os nomes de campo estao em camelCase porque este arquivo e desserializado",
+    "direto para records Java, sem estrategia de nomes customizada."
+  ],
+  "fonte": {
+    "wcag": {
+      "versao": "2.2",
+      "url": "https://www.w3.org/TR/WCAG22/"
+    },
+    "ict": {
+      "documento": "WCAG2ICT",
+      "titulo": "Guidance on Applying WCAG 2 to Non-Web Information and Communications Technologies",
+      "status": "W3C Group Note — informativo, nao normativo",
+      "publicadoEm": "2025-12-11",
+      "abrangencia": "WCAG 2.0, 2.1 e 2.2, niveis A e AA",
+      "url": "https://www.w3.org/TR/wcag2ict-22/"
+    }
+  },
+  "criterios": [
+    {
+      "id": "1.1.1",
+      "titulo": "Non-text Content",
+      "nivel": "A",
+      "aplicabilidadeIct": "direta",
+      "substituicoes": [],
+      "notaIct": "O criterio nao contem termo especifico de web ('web page' ou 'set of web pages'), portanto se aplica a documento nao-web sem substituicao de termo.",
+      "resumo": "Todo conteudo nao textual apresentado ao usuario tem alternativa textual que cumpre proposito equivalente. Conteudo puramente decorativo pode ser exposto de forma que a tecnologia assistiva o ignore."
+    }
+  ]
+}

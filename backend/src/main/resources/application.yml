@@ -1,0 +1,80 @@
+spring:
+  application:
+    name: accessai-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/accessai}
+    username: ${SPRING_DATASOURCE_USERNAME:accessai}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # O dono do schema e o Flyway. Hibernate nunca altera tabela.
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  kafka:
+    # Fora do compose vale KAFKA_BOOTSTRAP_SERVERS (host); dentro do compose o
+    # proprio compose injeta SPRING_KAFKA_BOOTSTRAP_SERVERS com o listener
+    # interno. Nenhum dos dois fica sem dono.
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # Jackson 3. O Boot 4.1 nao traz mais jackson-databind (Jackson 2), entao
+      # o antigo JsonSerializer do spring-kafka nao tem classe de apoio no
+      # classpath. As duas familias convivem no jar; usar a errada so falha em
+      # runtime.
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: accessai-analise
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        # O consumidor decide o tipo; nao aceita o que o produtor mandar no header.
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: dev.accessai.analise.evento.AnaliseSolicitadaV1
+    listener:
+      ack-mode: record
+
+  servlet:
+    multipart:
+      # Fonte unica do limite: accessai.upload.tamanho-maximo, la embaixo.
+      # Repetir a variavel de ambiente aqui criava dois lugares para mudar o
+      # mesmo numero, e um deles ia ficar para tras.
+      max-file-size: ${accessai.upload.tamanho-maximo}
+      max-request-size: ${accessai.upload.tamanho-maximo}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+accessai:
+  upload:
+    # Quem enforca e o multipart do Spring (acima). Este valor tambem e lido
+    # pelo tratador de erros, para que a mensagem de recusa cite o limite real
+    # em vez de um texto generico.
+    tamanho-maximo: ${ACCESSAI_UPLOAD_TAMANHO_MAXIMO:25MB}
+  kafka:
+    topico-analise-solicitada: accessai.analise.solicitada.v1
+    particoes: 3
+    replicas: 1
+
+logging:
+  level:
+    dev.accessai: INFO

@@ -1,0 +1,20 @@
+# binarios do corpus: documento publico real contem dado pessoal.
+# so o manifesto (datasets/corpus/manifest.json) vai para o git.
+datasets/corpus/raw/
+
+# build
+target/
+*.class
+
+# IDE: workspace.xml guarda caminho local e estado de janela, nao configuracao
+# de projeto. Nao ha o que ganhar versionando isso.
+.idea/
+*.iml
+workspace.xml
+
+# python
+__pycache__/
+*.pyc
+
+# credenciais
+.env

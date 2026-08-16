@@ -1,0 +1,263 @@
+{
+  "gerado_em": "2026-08-19T18:47:16+00:00",
+  "aviso": "Os binarios NAO estao versionados. Rode scripts/fetch-corpus.py para reconstruir datasets/corpus/raw/ e confira pelo sha256.",
+  "documentos": [
+    {
+      "arquivo": "01-edital-para-pregao-eletronico-sem-dedicacao-exclusiva_fev_22.docx",
+      "url": "https://www.gov.br/agu/pt-br/composicao/cgu/cgu/modelos/licitacoesecontratos/edital-para-pregao-eletronico-sem-dedicacao-exclusiva_fev_22.docx",
+      "orgao": "AGU/CGU",
+      "esfera": "federal",
+      "categoria": "edital",
+      "licenca": "nao declarada",
+      "sha256": "40537d4288012d188fd78ac5c8c47e3c2b4bb7da5fe83624d046b341193fc4ff",
+      "bytes": 116047,
+      "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "coletado_em": "2026-08-19T18:46:57+00:00",
+      "partes_xml": [
+        "word/document.xml",
+        "word/endnotes.xml",
+        "word/fontTable.xml",
+        "word/footer1.xml",
+        "word/footer2.xml",
+        "word/footer3.xml",
+        "word/footnotes.xml",
+        "word/header1.xml",
+        "word/header2.xml",
+        "word/header3.xml",
+        "word/numbering.xml",
+        "word/settings.xml",
+        "word/styles.xml",
+        "word/theme/theme1.xml",
+        "word/webSettings.xml"
+      ],
+      "midias": []
+    },
+    {
+      "arquivo": "02-l14133_termo_de_referencia_contratacao_direta_servicos.docx",
+      "url": "https://www.gov.br/agu/pt-br/composicao/cgu/cgu/modelos/licitacoesecontratos/l14133_termo_de_referencia_contratacao_direta_servicos.docx",
+      "orgao": "AGU/CGU",
+      "esfera": "federal",
+      "categoria": "termo de referencia",
+      "licenca": "nao declarada",
+      "sha256": "a67958ddb431e841068cda2c93919fee9b361eeda8408417a50847eb3d9cb94c",
+      "bytes": 103975,
+      "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "coletado_em": "2026-08-19T18:46:58+00:00",
+      "partes_xml": [
+        "word/document.xml",
+        "word/endnotes.xml",
+        "word/fontTable.xml",
+        "word/footer1.xml",
+        "word/footnotes.xml",
+        "word/numbering.xml",
+        "word/settings.xml",
+        "word/styles.xml",
+        "word/theme/theme1.xml",
+        "word/webSettings.xml"
+      ],
+      "midias": [
+        "word/media/image1.emf"
+      ]
+    },
+    {
+      "arquivo": "04-Formulário-de-avaliação-do-treinamento.docx",
+      "url": "https://www.bcb.gov.br/htms/sisex/noticias/Formul%C3%A1rio%20de%20avalia%C3%A7%C3%A3o%20do%20treinamento.docx",
+      "orgao": "Banco Central do Brasil",
+      "esfera": "federal",
+      "categoria": "formulario",
+      "licenca": "nao declarada",
+      "sha256": "6c981467b93604e0dc1bc9b898be07206b543b0c4b6ad608c8ece9ddc6d549c2",
+      "bytes": 43781,
+      "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "coletado_em": "2026-08-19T18:47:01+00:00",
+      "partes_xml": [
+        "word/document.xml",
+        "word/fontTable.xml",
+        "word/numbering.xml",
+        "word/settings.xml",
+        "word/styles.xml",
+        "word/theme/theme1.xml",
+        "word/webSettings.xml"
+      ],
+      "midias": [
+        "word/media/image1.png"
+      ]
+    },
+    {
+      "arquivo": "05-Concurso_Minuta-de-Edital.docx",
+      "url": "https://repositorio.enap.gov.br/bitstream/1/6536/8/Concurso_Minuta%20de%20Edital.docx",
+      "orgao": "ENAP",
+      "esfera": "federal",
+      "categoria": "edital",
+      "licenca": "nao declarada",
+      "sha256": "d4d3d81c00f45c92db46d04faf329e4373bf14c0f18a7b7910ecbd7f1a629161",
+      "bytes": 27169,
+      "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "coletado_em": "2026-08-19T18:47:03+00:00",
+      "partes_xml": [
+        "word/document.xml",
+        "word/fontTable.xml",
+        "word/numbering.xml",
+        "word/settings.xml",
+        "word/styles.xml",
+        "word/theme/theme1.xml",
+        "word/webSettings.xml"
+      ],
+      "midias": []
+    },
+    {
+      "arquivo": "07-modelo-de-edital-stricto-sensu.docx",
+      "url": "https://dpg.unb.br/wp-content/uploads/2026/02/modelo-de-edital-stricto-sensu.docx",
+      "orgao": "UnB",
+      "esfera": "universidade federal",
+      "categoria": "edital",
+      "licenca": "nao declarada",
+      "sha256": "68653c9edf9d3aa2a1bac8537808f4948ce2557eca21df635ef1ee0b92e5930a",
+      "bytes": 85065,
+      "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "coletado_em": "2026-08-19T18:47:07+00:00",
+      "partes_xml": [
+        "word/document.xml",
+        "word/endnotes.xml",
+        "word/fontTable.xml",
+        "word/footnotes.xml",
+        "word/numbering.xml",
+        "word/settings.xml",
+        "word/styles.xml",
+        "word/theme/theme1.xml",
+        "word/webSettings.xml"
+      ],
+      "midias": []
+    },
+    {
+      "arquivo": "08-modelo-de-recurso.docx",
+      "url": "https://ppgd.eba.ufrj.br/wp-content/uploads/2020/10/modelo-de-recurso.docx",
+      "orgao": "UFRJ",
+      "esfera": "universidade federal",
+      "categoria": "modelo de recurso",
+      "licenca": "nao declarada",
+      "sha256": "0fbe3588039967b6203241394fb5b1baeed21f917ae9cc4ba2112812cdea3ee2",
+      "bytes": 13140,
+      "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "coletado_em": "2026-08-19T18:47:08+00:00",
+      "partes_xml": [
+        "word/document.xml",
+        "word/fontTable.xml",
+        "word/settings.xml",
+        "word/styles.xml",
+        "word/theme/theme1.xml",
+        "word/webSettings.xml"
+      ],
+      "midias": []
+    },
+    {
+      "arquivo": "09-Anexo-I-Modelo-de-declaracao-de-vinculo-com-instituicao-de-ensino.docx",
+      "url": "https://ifrs.edu.br/caxias/wp-content/uploads/sites/8/2025/08/Anexo-I-Modelo-de-declaracao-de-vinculo-com-instituicao-de-ensino.docx",
+      "orgao": "IFRS Caxias",
+      "esfera": "instituto federal",
+      "categoria": "declaracao",
+      "licenca": "nao declarada",
+      "sha256": "e6fde47c604f564cbbfa4a94ae39719b6d3240a1b7135d6c80fdd9ab83e6fe0e",
+      "bytes": 57753,
+      "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "coletado_em": "2026-08-19T18:47:10+00:00",
+      "partes_xml": [
+        "word/document.xml",
+        "word/fontTable.xml",
+        "word/footer1.xml",
+        "word/settings.xml",
+        "word/styles.xml"
+      ],
+      "midias": [
+        "word/media/image1.jpeg"
+      ]
+    },
+    {
+      "arquivo": "11-JMO-COET-ANEXO-II-Perfil-Profissiografico-Previdenciario-PPP-Formulari.docx",
+      "url": "https://goias.gov.br/administracao/wp-content/uploads/sites/27/2024/04/JMO-COET-ANEXO-II-Perfil-Profissiografico-Previdenciario-PPP-Formulario-Word-2.docx",
+      "orgao": "Governo de Goias",
+      "esfera": "estadual",
+      "categoria": "formulario",
+      "licenca": "nao declarada",
+      "sha256": "9de7e1efa4a2447967a2831a0fe396db2310cbc2885f4e533c0ceeafe7e7ce96",
+      "bytes": 19418,
+      "content_type_declarado": "application/msword",
+      "coletado_em": "2026-08-19T18:47:13+00:00",
+      "partes_xml": [
+        "word/document.xml",
+        "word/fontTable.xml",
+        "word/numbering.xml",
+        "word/settings.xml",
+        "word/styles.xml",
+        "word/theme/theme1.xml",
+        "word/webSettings.xml"
+      ],
+      "midias": []
+    },
+    {
+      "arquivo": "12-Modelo-de-Edital-Fomento-a-Execucao-de-Acoes-Culturais-CORRIGIDO.docx",
+      "url": "https://www.apucarana.pr.gov.br/site/wp-content/uploads/2024/08/Modelo-de-Edital-Fomento-a-Execucao-de-Acoes-Culturais-CORRIGIDO.docx",
+      "orgao": "Prefeitura de Apucarana/PR",
+      "esfera": "municipal",
+      "categoria": "edital",
+      "licenca": "nao declarada",
+      "sha256": "1547a87c3362823ffb4f68d904b760fdf43be87b8093a1861fefdf5eebc9b8bc",
+      "bytes": 381243,
+      "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "coletado_em": "2026-08-19T18:47:14+00:00",
+      "partes_xml": [
+        "word/commentsDocument.xml",
+        "word/commentsExtendedDocument.xml",
+        "word/commentsIdsDocument.xml",
+        "word/document.xml",
+        "word/endnotes.xml",
+        "word/fontTable.xml",
+        "word/footer1.xml",
+        "word/footnotes.xml",
+        "word/header1.xml",
+        "word/numbering.xml",
+        "word/settings.xml",
+        "word/styles.xml",
+        "word/theme/theme1.xml",
+        "word/webSettings.xml"
+      ],
+      "midias": [
+        "word/media/image1.png"
+      ]
+    }
+  ],
+  "falhas": [
+    {
+      "url": "https://www.gov.br/agu/pt-br/composicao/cgu/cgu/ecju/servicoscom/parametrizados/modelo-reconhecimento-divida-scom.docx",
+      "orgao": "AGU/CGU",
+      "esfera": "federal",
+      "categoria": "modelo juridico",
+      "licenca": "nao declarada",
+      "erro": "HTTP 404"
+    },
+    {
+      "url": "https://portaldeimigracao.mj.gov.br/images/trabalho-estrangeiro/nova-legislacao/item/download/ANEXO%20I%20-%20FORMUL%C3%81RIO%20RN%2001.docx",
+      "orgao": "Ministerio da Justica",
+      "esfera": "federal",
+      "categoria": "formulario",
+      "licenca": "nao declarada",
+      "erro": "nao e zip (sem assinatura PK)"
+    },
+    {
+      "url": "https://www.funcap.ce.gov.br/wp-content/uploads/sites/52/2021/09/Modelo-Projeto-Edital-.docx",
+      "orgao": "FUNCAP/CE",
+      "esfera": "estadual",
+      "categoria": "edital",
+      "licenca": "nao declarada",
+      "erro": "HTTP 404"
+    },
+    {
+      "url": "https://www.donafrancisca.rs.gov.br/arqs/4689.docx",
+      "orgao": "Prefeitura de Dona Francisca/RS",
+      "esfera": "municipal",
+      "categoria": "edital",
+      "licenca": "nao declarada",
+      "erro": "nao e zip (sem assinatura PK)"
+    }
+  ]
+}

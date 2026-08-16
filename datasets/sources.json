@@ -1,0 +1,105 @@
+{
+  "_comentario": [
+    "Lista-semente do corpus real. O script scripts/fetch-corpus.py baixa APENAS",
+    "estas URLs — nao ha crawling. Cada entrada foi encontrada por busca e",
+    "aponta para um .docx publico de orgao federal, estadual, municipal ou",
+    "instituicao federal de ensino.",
+    "",
+    "licenca: 'nao declarada' significa que a pagina de origem nao publicou termo",
+    "de licenca. Nao e o mesmo que dominio publico. Por isso o binario NAO vai",
+    "para o repositorio (ver datasets/README.md)."
+  ],
+  "fontes": [
+    {
+      "url": "https://www.gov.br/agu/pt-br/composicao/cgu/cgu/modelos/licitacoesecontratos/edital-para-pregao-eletronico-sem-dedicacao-exclusiva_fev_22.docx",
+      "orgao": "AGU/CGU",
+      "esfera": "federal",
+      "categoria": "edital",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://www.gov.br/agu/pt-br/composicao/cgu/cgu/modelos/licitacoesecontratos/l14133_termo_de_referencia_contratacao_direta_servicos.docx",
+      "orgao": "AGU/CGU",
+      "esfera": "federal",
+      "categoria": "termo de referencia",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://www.gov.br/agu/pt-br/composicao/cgu/cgu/ecju/servicoscom/parametrizados/modelo-reconhecimento-divida-scom.docx",
+      "orgao": "AGU/CGU",
+      "esfera": "federal",
+      "categoria": "modelo juridico",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://www.bcb.gov.br/htms/sisex/noticias/Formul%C3%A1rio%20de%20avalia%C3%A7%C3%A3o%20do%20treinamento.docx",
+      "orgao": "Banco Central do Brasil",
+      "esfera": "federal",
+      "categoria": "formulario",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://repositorio.enap.gov.br/bitstream/1/6536/8/Concurso_Minuta%20de%20Edital.docx",
+      "orgao": "ENAP",
+      "esfera": "federal",
+      "categoria": "edital",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://portaldeimigracao.mj.gov.br/images/trabalho-estrangeiro/nova-legislacao/item/download/ANEXO%20I%20-%20FORMUL%C3%81RIO%20RN%2001.docx",
+      "orgao": "Ministerio da Justica",
+      "esfera": "federal",
+      "categoria": "formulario",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://dpg.unb.br/wp-content/uploads/2026/02/modelo-de-edital-stricto-sensu.docx",
+      "orgao": "UnB",
+      "esfera": "universidade federal",
+      "categoria": "edital",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://ppgd.eba.ufrj.br/wp-content/uploads/2020/10/modelo-de-recurso.docx",
+      "orgao": "UFRJ",
+      "esfera": "universidade federal",
+      "categoria": "modelo de recurso",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://ifrs.edu.br/caxias/wp-content/uploads/sites/8/2025/08/Anexo-I-Modelo-de-declaracao-de-vinculo-com-instituicao-de-ensino.docx",
+      "orgao": "IFRS Caxias",
+      "esfera": "instituto federal",
+      "categoria": "declaracao",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://www.funcap.ce.gov.br/wp-content/uploads/sites/52/2021/09/Modelo-Projeto-Edital-.docx",
+      "orgao": "FUNCAP/CE",
+      "esfera": "estadual",
+      "categoria": "edital",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://goias.gov.br/administracao/wp-content/uploads/sites/27/2024/04/JMO-COET-ANEXO-II-Perfil-Profissiografico-Previdenciario-PPP-Formulario-Word-2.docx",
+      "orgao": "Governo de Goias",
+      "esfera": "estadual",
+      "categoria": "formulario",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://www.apucarana.pr.gov.br/site/wp-content/uploads/2024/08/Modelo-de-Edital-Fomento-a-Execucao-de-Acoes-Culturais-CORRIGIDO.docx",
+      "orgao": "Prefeitura de Apucarana/PR",
+      "esfera": "municipal",
+      "categoria": "edital",
+      "licenca": "nao declarada"
+    },
+    {
+      "url": "https://www.donafrancisca.rs.gov.br/arqs/4689.docx",
+      "orgao": "Prefeitura de Dona Francisca/RS",
+      "esfera": "municipal",
+      "categoria": "edital",
+      "licenca": "nao declarada"
+    }
+  ]
+}
