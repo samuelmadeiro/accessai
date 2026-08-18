@@ -1,8 +1,10 @@
 package dev.accessai.analise.regras;
 
+import static dev.accessai.analise.regras.Documentos.comImagens;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.accessai.analise.dominio.Problema;
+import dev.accessai.analise.extracao.DocumentoExtraido;
 import dev.accessai.analise.extracao.ImagemDoDocumento;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -16,8 +18,10 @@ class RegraImagemSemTextoAlternativoTest {
     @Test
     @DisplayName("alt ausente vira achado de severidade ALTA com a parte do pacote")
     void altAusenteViraAchado() {
-        List<Achado> achados = regra.avaliar(List.of(
-                ImagemDoDocumento.de("word/header1.xml", "brasao.png", null)));
+        DocumentoExtraido doc = comImagens(
+                ImagemDoDocumento.de("word/header1.xml", "brasao.png", null));
+
+        List<Achado> achados = regra.avaliar(doc);
 
         assertThat(achados).singleElement().satisfies(a -> {
             assertThat(a.severidade()).isEqualTo(Problema.Severidade.ALTA);
@@ -29,30 +33,36 @@ class RegraImagemSemTextoAlternativoTest {
     @Test
     @DisplayName("alt vazio nao e achado: e declaracao de imagem decorativa")
     void altVazioNaoEhAchado() {
-        assertThat(regra.avaliar(List.of(
+        DocumentoExtraido doc = comImagens(
                 ImagemDoDocumento.de("word/document.xml", "linha.png", ""),
-                ImagemDoDocumento.de("word/document.xml", "espaco.png", "   "))))
-                .isEmpty();
+                ImagemDoDocumento.de("word/document.xml", "espaco.png", "   "));
+
+        assertThat(regra.avaliar(doc)).isEmpty();
     }
 
     @Test
     @DisplayName("alt preenchido nao e achado")
     void altPreenchidoNaoEhAchado() {
-        assertThat(regra.avaliar(List.of(
-                ImagemDoDocumento.de("word/document.xml", "mapa.png", "Mapa da regiao sul"))))
-                .isEmpty();
+        DocumentoExtraido doc = comImagens(
+                ImagemDoDocumento.de("word/document.xml", "mapa.png", "Mapa da regiao sul"));
+
+        assertThat(regra.avaliar(doc)).isEmpty();
     }
 
     @Test
     @DisplayName("imagem sem nome ainda produz evidencia legivel")
     void imagemSemNome() {
-        List<Achado> achados = regra.avaliar(List.of(
-                ImagemDoDocumento.de("word/document.xml", null, null)));
+        DocumentoExtraido doc = comImagens(
+                ImagemDoDocumento.de("word/document.xml", null, null));
 
-        assertThat(achados).singleElement()
-                .extracting(Achado::evidencia)
-                .asString()
-                .contains("(sem nome)");
+        assertThat(regra.avaliar(doc)).singleElement()
+                .extracting(Achado::evidencia).asString().contains("(sem nome)");
+    }
+
+    @Test
+    @DisplayName("documento sem imagem nenhuma nao produz achado")
+    void semImagens() {
+        assertThat(regra.avaliar(DocumentoExtraido.vazio())).isEmpty();
     }
 
     @Test

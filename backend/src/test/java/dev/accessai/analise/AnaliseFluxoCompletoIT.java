@@ -1,13 +1,20 @@
 package dev.accessai.analise;
 
+import static dev.accessai.analise.extracao.DocxDeTeste.cabecalhoDePagina;
+import static dev.accessai.analise.extracao.DocxDeTeste.caixaDeTexto;
+import static dev.accessai.analise.extracao.DocxDeTeste.imagemAncorada;
+import static dev.accessai.analise.extracao.DocxDeTeste.imagemInline;
+import static dev.accessai.analise.extracao.DocxDeTeste.link;
+import static dev.accessai.analise.extracao.DocxDeTeste.pacote;
+import static dev.accessai.analise.extracao.DocxDeTeste.tabela;
+import static dev.accessai.analise.extracao.DocxDeTeste.tituloPorEstilo;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.accessai.analise.api.AnaliseDto;
 import dev.accessai.analise.extracao.DocxDeTeste;
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,15 +23,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClient;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -32,26 +38,28 @@ import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * Teste ponta a ponta da Slice 1: upload HTTP, evento no Kafka, regra
- * executada, problema no Postgres, resultado no GET.
+ * Teste ponta a ponta: upload HTTP, evento no Kafka, regras executadas,
+ * problemas no Postgres, resultado e score no GET.
  *
  * <p>Nao ha mock de infraestrutura: Postgres e Kafka sao containers reais. Um
  * teste que substitui o broker por um mock nao prova que o contrato do topico
- * funciona, que e justamente o que esta slice precisa demonstrar.
+ * funciona.
+ *
+ * <p>Os documentos sao montados em memoria por {@link DocxDeTeste}, e nao
+ * carregados de fixtures binarias. Um {@code .docx} commitado e um zip que
+ * ninguem revisa: aqui o XML que produz cada problema esta a vista, ao lado da
+ * assercao. A contrapartida continua registrada — sao pacotes sinteticos, e a
+ * validacao com exports reais de Word, Google Docs e LibreOffice segue pendente.
  *
  * <p>{@code @EnabledIfDockerAvailable} faz a suite ser PULADA, e nao quebrada,
- * quando nao ha Docker na maquina. A diferenca importa: sem a anotacao o build
- * falha com um stack trace de "Could not find a valid Docker environment", que
- * parece defeito de codigo e nao ausencia de pre-requisito.
- *
- * <p>Contrapartida assumida: teste pulado nao protege ninguem. O pipeline de CI
- * precisa garantir Docker disponivel e tratar suite pulada como falha — senao
- * esta anotacao vira um jeito silencioso de nunca rodar o E2E.
+ * quando nao ha Docker na maquina. Contrapartida assumida: teste pulado nao
+ * protege ninguem, entao o CI precisa garantir Docker e tratar suite pulada como
+ * falha.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 @EnabledIfDockerAvailable
-@DisplayName("Slice 1: upload ate GET")
+@DisplayName("Slice 2: upload ate GET com score")
 class AnaliseFluxoCompletoIT {
 
     private static final Duration LIMITE_DE_ESPERA = Duration.ofSeconds(60);
@@ -65,13 +73,9 @@ class AnaliseFluxoCompletoIT {
     static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.3.1");
 
     /**
-     * O Postgres entra por @ServiceConnection, o Kafka nao.
-     *
-     * <p>No Boot 4 os starters foram modularizados e a fabrica de
-     * ConnectionDetails do Kafka nao esta em spring-boot-testcontainers — com
-     * @ServiceConnection o contexto falha com ConnectionDetailsNotFound.
-     * Apontar a propriedade na mao e explicito e nao depende de descobrir qual
-     * modulo publica a fabrica.
+     * O Postgres entra por @ServiceConnection, o Kafka nao: no Boot 4 a fabrica
+     * de ConnectionDetails do Kafka nao esta em spring-boot-testcontainers, e o
+     * contexto falharia com ConnectionDetailsNotFound.
      */
     @DynamicPropertySource
     static void apontarKafka(DynamicPropertyRegistry registro) {
@@ -95,99 +99,121 @@ class AnaliseFluxoCompletoIT {
     }
 
     @Test
-    @DisplayName("documento com imagem sem alt vira problema 1.1.1 consultavel")
-    void fluxoCompletoComProblema() throws IOException {
-        UUID analiseId = enviar("fixtures/imagem-sem-alt.docx");
+    @DisplayName("documento que viola cinco regras devolve os problemas e o score por categoria")
+    void documentoComVariosProblemas() {
+        byte[] docx = pacote()
+                .comCorpo(
+                        // 1.1.1 Perceptivel: imagem sem descr
+                        imagemInline("brasao.png", null),
+                        // 1.3.1 Perceptivel: H1 direto para H3
+                        tituloPorEstilo(1, "Edital"),
+                        tituloPorEstilo(3, "Anexo I"),
+                        // 1.3.1 Perceptivel: tabela sem linha de cabecalho
+                        tabela(4, false),
+                        // 2.4.4 Operavel: texto de link generico
+                        link("rId7", "clique aqui"))
+                .comLinksExternos(Map.of("rId7", "https://prefeitura.gov.br/edital.pdf"))
+                // 2.4.2 Operavel: dc:title ausente
+                .comPropriedadesSemTitulo()
+                // 3.1.1 Compreensivel: nenhum w:lang
+                .comEstilosSemIdioma()
+                .bytes();
 
-        AnaliseDto.RespostaDeAnalise resultado = aguardarConclusao(analiseId);
+        AnaliseDto.RespostaDeAnalise resultado = analisar(docx, "edital-com-problemas.docx");
 
         assertThat(resultado.situacao()).isEqualTo("CONCLUIDA");
-        assertThat(resultado.tipoMimeDetectado())
-                .isEqualTo("application/vnd.openxmlformats-officedocument."
-                        + "wordprocessingml.document");
-        assertThat(resultado.sha256()).hasSize(64);
-        assertThat(resultado.correlationId()).isNotNull();
-        assertThat(resultado.totalDeProblemas()).isEqualTo(1);
+        assertThat(resultado.problemas())
+                .extracting(AnaliseDto.ProblemaEncontrado::regraId)
+                .containsExactlyInAnyOrder(
+                        "IMAGEM_SEM_TEXTO_ALTERNATIVO",
+                        "TABELA_SEM_CABECALHO",
+                        "ORDEM_HIERARQUICA_CABECALHOS",
+                        "TITULO_AUSENTE",
+                        "LINK_SEM_TEXTO_DESCRITIVO",
+                        "IDIOMA_NAO_DECLARADO");
 
-        AnaliseDto.ProblemaEncontrado problema = resultado.problemas().getFirst();
-        assertThat(problema.regraId()).isEqualTo("IMAGEM_SEM_TEXTO_ALTERNATIVO");
-        assertThat(problema.criterioWcag()).isEqualTo("1.1.1");
-        assertThat(problema.nivelWcag()).isEqualTo("A");
-        assertThat(problema.partePacote()).isEqualTo("word/document.xml");
-        assertThat(problema.evidencia()).contains("foto.png");
+        // Perceptivel: ALTA 15 (imagem) + ALTA 15 (tabela) + MEDIA 8 (hierarquia) = 38 -> 62
+        // Operavel:    MEDIA 8 (titulo) + MEDIA 8 (link)                          = 16 -> 84
+        // Compreensivel: ALTA 15 (idioma)                                         = 15 -> 85
+        // Global com pesos iguais: (62 + 84 + 85) / 3 = 77
+        AnaliseDto.ScoreDoDocumento score = resultado.score();
+        assertThat(score.global()).isEqualTo(77);
+        assertThat(score.categorias())
+                .extracting(AnaliseDto.CategoriaDoScore::principio,
+                        AnaliseDto.CategoriaDoScore::score,
+                        AnaliseDto.CategoriaDoScore::problemas)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("PERCEPTIVEL", 62, 3),
+                        org.assertj.core.groups.Tuple.tuple("OPERAVEL", 84, 2),
+                        org.assertj.core.groups.Tuple.tuple("COMPREENSIVEL", 85, 1));
+        assertThat(score.naoAvaliados())
+                .as("nenhuma regra verifica 4.x; dizer isso e parte da resposta")
+                .containsExactly("ROBUSTO");
     }
 
     @Test
-    @DisplayName("imagem com alt preenchido nao gera problema")
-    void documentoAcessivelNaoGeraProblema() throws IOException {
-        UUID analiseId = enviar("fixtures/imagem-com-alt.docx");
+    @DisplayName("documento acessivel tira 100 e nao gera nenhum falso positivo")
+    void documentoAcessivelTira100() {
+        byte[] docx = pacote()
+                .comCorpo(
+                        tituloPorEstilo(1, "Edital de Fomento 3/2026"),
+                        tituloPorEstilo(2, "Objeto"),
+                        imagemInline("grafico.png", "Grafico da distribuicao de recursos"),
+                        imagemInline("linha.png", ""),
+                        caixaDeTexto("Caixa de Texto 1", "Prazo ate 30 de setembro"),
+                        tabela(3, true),
+                        link("rId7", "Anexo I - modelo de declaracao"))
+                .comLinksExternos(Map.of("rId7", "https://prefeitura.gov.br/anexo-i.docx"))
+                .comTitulo("Edital de Fomento 3/2026")
+                .comIdiomaPadrao("pt-BR")
+                .bytes();
 
-        AnaliseDto.RespostaDeAnalise resultado = aguardarConclusao(analiseId);
+        AnaliseDto.RespostaDeAnalise resultado = analisar(docx, "edital-acessivel.docx");
 
-        assertThat(resultado.situacao()).isEqualTo("CONCLUIDA");
         assertThat(resultado.totalDeProblemas())
-                .as("alt preenchido nao pode virar problema; isso seria falso positivo")
+                .as("imagem decorativa, caixa de texto e link descritivo nao sao problema")
                 .isZero();
+        assertThat(resultado.score().global()).isEqualTo(100);
+        assertThat(resultado.score().categorias()).allSatisfy(
+                c -> assertThat(c.score()).isEqualTo(100));
     }
 
     @Test
     @DisplayName("imagem so no cabecalho tambem e analisada")
-    void imagemNoCabecalhoEhEncontrada() throws IOException {
-        UUID analiseId = enviar("fixtures/imagem-no-cabecalho-sem-alt.docx");
+    void imagemNoCabecalhoEhEncontrada() {
+        byte[] docx = documentoConforme()
+                .com("word/header2.xml", cabecalhoDePagina(imagemAncorada("brasao.png", null)))
+                .bytes();
 
-        AnaliseDto.RespostaDeAnalise resultado = aguardarConclusao(analiseId);
+        AnaliseDto.RespostaDeAnalise resultado = analisar(docx, "com-cabecalho.docx");
 
-        assertThat(resultado.totalDeProblemas())
+        assertThat(resultado.problemas())
                 .as("quem le apenas word/document.xml devolve zero aqui")
-                .isEqualTo(1);
-        assertThat(resultado.problemas().getFirst().partePacote())
-                .isEqualTo("word/header2.xml");
+                .singleElement()
+                .satisfies(p -> {
+                    assertThat(p.regraId()).isEqualTo("IMAGEM_SEM_TEXTO_ALTERNATIVO");
+                    assertThat(p.criterioWcag()).isEqualTo("1.1.1");
+                    assertThat(p.nivelWcag()).isEqualTo("A");
+                    assertThat(p.partePacote()).isEqualTo("word/header2.xml");
+                    assertThat(p.evidencia()).contains("brasao.png");
+                });
+        assertThat(resultado.score().global()).isEqualTo(95);
     }
 
     @Test
-    @DisplayName("documento que quebra no parsing termina em FALHOU, nao preso em RECEBIDA")
+    @DisplayName("documento que quebra no parsing termina em FALHOU e sem score")
     void documentoQueQuebraNoParsingTerminaEmFalhou() {
         // Pacote que passa na validacao (tem PK, [Content_Types].xml e
-        // word/document.xml) e so quebra quando o extrator le o XML. Antes da
-        // politica de falha isso deixava a analise em RECEBIDA para sempre.
-        byte[] docx = DocxDeTeste.pacote()
-                .com("word/document.xml", "<w:document><w:body>")
-                .bytes();
+        // word/document.xml) e so quebra quando o extrator le o XML.
+        byte[] docx = pacote().com("word/document.xml", "<w:document><w:body>").bytes();
 
-        ResponseEntity<AnaliseDto.RespostaDeRecebimento> resposta = postar(
-                multipart(docx, "quebrado.docx"), AnaliseDto.RespostaDeRecebimento.class);
-        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(resposta.getBody()).isNotNull();
-
-        AnaliseDto.RespostaDeAnalise resultado = aguardarConclusao(resposta.getBody().analiseId());
+        AnaliseDto.RespostaDeAnalise resultado = analisar(docx, "quebrado.docx");
 
         assertThat(resultado.situacao()).isEqualTo("FALHOU");
         assertThat(resultado.totalDeProblemas()).isZero();
-    }
-
-    @Test
-    @DisplayName("caixa de texto sem alt nao vira problema")
-    void caixaDeTextoNaoViraProblema() {
-        // wp:docPr existe em qualquer desenho. Contar caixa de texto como
-        // imagem gerava falso positivo em documento real.
-        byte[] docx = DocxDeTeste.pacote()
-                .comCorpo("<w:p><w:r><w:drawing><wp:inline>"
-                        + "<wp:docPr id=\"1\" name=\"Caixa de Texto 2\"/>"
-                        + "<a:graphic><a:graphicData uri=\"http://schemas.microsoft.com/office/"
-                        + "word/2010/wordprocessingShape\"><wps:wsp><wps:txbx><w:txbxContent>"
-                        + "<w:p><w:r><w:t>Prazo ate sexta</w:t></w:r></w:p>"
-                        + "</w:txbxContent></wps:txbx></wps:wsp></a:graphicData></a:graphic>"
-                        + "</wp:inline></w:drawing></w:r></w:p>")
-                .bytes();
-
-        ResponseEntity<AnaliseDto.RespostaDeRecebimento> resposta = postar(
-                multipart(docx, "com-caixa-de-texto.docx"), AnaliseDto.RespostaDeRecebimento.class);
-        assertThat(resposta.getBody()).isNotNull();
-
-        AnaliseDto.RespostaDeAnalise resultado = aguardarConclusao(resposta.getBody().analiseId());
-
-        assertThat(resultado.situacao()).isEqualTo("CONCLUIDA");
-        assertThat(resultado.totalDeProblemas()).isZero();
+        assertThat(resultado.score().global())
+                .as("documento que ninguem conseguiu processar nao recebe nota")
+                .isNull();
     }
 
     @Test
@@ -217,18 +243,24 @@ class AnaliseFluxoCompletoIT {
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
-    private UUID enviar(String recurso) throws IOException {
-        byte[] conteudo;
-        try (InputStream in = new ClassPathResource(recurso).getInputStream()) {
-            conteudo = in.readAllBytes();
-        }
+    // ------------------------------------------------------------------
+
+    /** Pacote sem nenhum problema, para o teste isolar a violacao que quer. */
+    private static DocxDeTeste documentoConforme() {
+        return pacote()
+                .comCorpo(tituloPorEstilo(1, "Documento"))
+                .comTitulo("Documento")
+                .comIdiomaPadrao("pt-BR");
+    }
+
+    private AnaliseDto.RespostaDeAnalise analisar(byte[] docx, String nomeArquivo) {
         ResponseEntity<AnaliseDto.RespostaDeRecebimento> resposta = postar(
-                multipart(conteudo, "documento.docx"), AnaliseDto.RespostaDeRecebimento.class);
+                multipart(docx, nomeArquivo), AnaliseDto.RespostaDeRecebimento.class);
 
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resposta.getBody()).isNotNull();
         assertThat(resposta.getBody().situacao()).isEqualTo("RECEBIDA");
-        return resposta.getBody().analiseId();
+        return aguardarConclusao(resposta.getBody().analiseId());
     }
 
     private <T> ResponseEntity<T> postar(MultiValueMap<String, Object> corpo, Class<T> tipo) {
@@ -252,7 +284,7 @@ class AnaliseFluxoCompletoIT {
     }
 
     /**
-     * Sonda o GET ate a analise sair de RECEBIDA.
+     * Sonda o GET ate a analise chegar a um estado terminal.
      *
      * <p>Sondagem em vez de {@code Thread.sleep} fixo: o tempo do consumidor
      * varia com a carga da maquina, e sleep fixo produz teste que passa aqui e

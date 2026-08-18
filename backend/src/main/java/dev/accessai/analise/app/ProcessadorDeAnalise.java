@@ -1,7 +1,7 @@
 package dev.accessai.analise.app;
 
 import dev.accessai.analise.evento.AnaliseSolicitadaV1;
-import dev.accessai.analise.extracao.ExtratorDeImagens;
+import dev.accessai.analise.extracao.ParteIlegivelException;
 import java.io.UncheckedIOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +69,7 @@ public class ProcessadorDeAnalise {
      * analise marcada FALHOU sem motivo.
      */
     private static boolean ehPermanente(RuntimeException e) {
-        return e instanceof ExtratorDeImagens.ParteIlegivelException
+        return e instanceof ParteIlegivelException
                 || e instanceof UncheckedIOException
                 || e instanceof BinarioAusenteException
                 || e instanceof AnaliseNaoEncontradaException

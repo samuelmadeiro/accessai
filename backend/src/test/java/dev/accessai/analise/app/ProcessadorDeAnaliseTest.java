@@ -7,7 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import dev.accessai.analise.evento.AnaliseSolicitadaV1;
-import dev.accessai.analise.extracao.ExtratorDeImagens;
+import dev.accessai.analise.extracao.ParteIlegivelException;
 import java.io.UncheckedIOException;
 import java.io.IOException;
 import java.time.Instant;
@@ -47,7 +47,7 @@ class ProcessadorDeAnaliseTest {
     @Test
     @DisplayName("pacote ilegivel e falha permanente: marca FALHOU e nao relanca")
     void parteIlegivelMarcaFalhou() {
-        doThrow(new ExtratorDeImagens.ParteIlegivelException("word/document.xml",
+        doThrow(new ParteIlegivelException("word/document.xml",
                 new RuntimeException("xml torto")))
                 .when(execucao).executar(EVENTO);
 

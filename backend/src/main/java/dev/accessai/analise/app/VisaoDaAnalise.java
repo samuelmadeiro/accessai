@@ -3,6 +3,7 @@ package dev.accessai.analise.app;
 import dev.accessai.analise.dominio.Analise;
 import dev.accessai.analise.dominio.Problema;
 import dev.accessai.analise.dominio.SituacaoAnalise;
+import dev.accessai.analise.score.ScoreDaAnalise;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -28,13 +29,14 @@ public record VisaoDaAnalise(
         SituacaoAnalise situacao,
         Instant criadaEm,
         Instant atualizadaEm,
-        List<ProblemaVisto> problemas) {
+        List<ProblemaVisto> problemas,
+        ScoreDaAnalise score) {
 
     public VisaoDaAnalise {
         problemas = List.copyOf(problemas);
     }
 
-    static VisaoDaAnalise de(Analise analise, List<Problema> problemas) {
+    static VisaoDaAnalise de(Analise analise, List<Problema> problemas, ScoreDaAnalise score) {
         return new VisaoDaAnalise(
                 analise.getId(),
                 analise.getCorrelationId(),
@@ -45,7 +47,8 @@ public record VisaoDaAnalise(
                 analise.getSituacao(),
                 analise.getCriadaEm(),
                 analise.getAtualizadaEm(),
-                problemas.stream().map(ProblemaVisto::de).toList());
+                problemas.stream().map(ProblemaVisto::de).toList(),
+                score);
     }
 
     /** Um problema encontrado, ja fora do dominio persistente. */

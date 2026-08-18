@@ -9,8 +9,8 @@ import dev.accessai.analise.dominio.EventoProcessadoRepository;
 import dev.accessai.analise.dominio.Problema;
 import dev.accessai.analise.dominio.ProblemaRepository;
 import dev.accessai.analise.evento.AnaliseSolicitadaV1;
-import dev.accessai.analise.extracao.ExtratorDeImagens;
-import dev.accessai.analise.extracao.ImagemDoDocumento;
+import dev.accessai.analise.extracao.DocumentoExtraido;
+import dev.accessai.analise.extracao.ExtratorDeDocumento;
 import dev.accessai.analise.regras.MotorDeRegras;
 import java.time.Clock;
 import java.time.Instant;
@@ -45,7 +45,7 @@ public class ExecucaoDaAnalise {
     private final DocumentoBinarioRepository documentoRepository;
     private final ProblemaRepository problemaRepository;
     private final EventoProcessadoRepository eventoRepository;
-    private final ExtratorDeImagens extrator;
+    private final ExtratorDeDocumento extrator;
     private final MotorDeRegras motor;
     private final Clock clock;
 
@@ -53,7 +53,7 @@ public class ExecucaoDaAnalise {
                              DocumentoBinarioRepository documentoRepository,
                              ProblemaRepository problemaRepository,
                              EventoProcessadoRepository eventoRepository,
-                             ExtratorDeImagens extrator,
+                             ExtratorDeDocumento extrator,
                              MotorDeRegras motor,
                              Clock clock) {
         this.analiseRepository = analiseRepository;
@@ -89,16 +89,19 @@ public class ExecucaoDaAnalise {
         Instant agora = clock.instant();
         analise.marcarProcessando(agora);
 
-        List<ImagemDoDocumento> imagens = extrator.extrair(documento.getConteudo());
-        List<Problema> problemas = motor.executar(analise.getId(), imagens, agora);
+        DocumentoExtraido extraido = extrator.extrair(documento.getConteudo());
+        List<Problema> problemas = motor.executar(analise.getId(), extraido, agora);
         problemaRepository.saveAll(problemas);
 
         analise.marcarConcluida(clock.instant());
         analiseRepository.save(analise);
         registrarProcessado(evento);
 
-        log.info("analise concluida analiseId={} correlationId={} imagens={} problemas={}",
-                analise.getId(), evento.correlationId(), imagens.size(), problemas.size());
+        log.info("analise concluida analiseId={} correlationId={} imagens={} tabelas={} "
+                        + "titulos={} links={} problemas={}",
+                analise.getId(), evento.correlationId(), extraido.imagens().size(),
+                extraido.tabelas().size(), extraido.cabecalhos().size(),
+                extraido.links().size(), problemas.size());
     }
 
     private void registrarProcessado(AnaliseSolicitadaV1 evento) {

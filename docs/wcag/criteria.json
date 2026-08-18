@@ -3,14 +3,19 @@
     "Tabela de referencia versionada citada em CLAUDE.md secao 6. Nenhuma regra",
     "escreve criterio, nivel ou numeracao em codigo: tudo vem daqui.",
     "",
-    "A base normativa e o WCAG2ICT (condicao C-1 de docs/architecture/fase-0.md).",
-    "O WCAG2ICT e uma W3C Group Note INFORMATIVA: nao e norma e nao estabelece",
-    "requisitos de conformidade. Ele descreve como cada criterio da WCAG se",
-    "aplica a documento nao-web, incluindo as substituicoes de termo.",
+    "A base normativa e o WCAG2ICT (ADR 0007). O WCAG2ICT e uma W3C Group Note",
+    "INFORMATIVA: nao e norma e nao estabelece requisitos de conformidade. Ele",
+    "descreve como cada criterio da WCAG se aplica a documento nao-web, incluindo",
+    "as substituicoes de termo.",
     "",
     "Esta tabela contem apenas os criterios efetivamente usados pelas regras",
     "implementadas. Criterio sem regra correspondente nao entra: tabela",
     "especulativa e convite a citar criterio que ninguem verificou.",
+    "",
+    "O primeiro digito do id e o principio POUR e decide a categoria do score",
+    "(1 Perceptivel, 2 Operavel, 3 Compreensivel, 4 Robusto). Nao existe campo",
+    "de categoria: ele seria uma segunda fonte de verdade para algo que o",
+    "proprio numero do criterio ja diz.",
     "",
     "Os nomes de campo estao em camelCase porque este arquivo e desserializado",
     "direto para records Java, sem estrategia de nomes customizada."
@@ -38,6 +43,46 @@
       "substituicoes": [],
       "notaIct": "O criterio nao contem termo especifico de web ('web page' ou 'set of web pages'), portanto se aplica a documento nao-web sem substituicao de termo.",
       "resumo": "Todo conteudo nao textual apresentado ao usuario tem alternativa textual que cumpre proposito equivalente. Conteudo puramente decorativo pode ser exposto de forma que a tecnologia assistiva o ignore."
+    },
+    {
+      "id": "1.3.1",
+      "titulo": "Info and Relationships",
+      "nivel": "A",
+      "aplicabilidadeIct": "direta",
+      "substituicoes": [],
+      "notaIct": "O criterio nao contem termo especifico de web e se aplica a documento nao-web sem substituicao. Em documento de escritorio a estrutura programaticamente determinavel e a marcacao do proprio formato: estilo de titulo, linha de cabecalho de tabela, lista real.",
+      "resumo": "Informacao, estrutura e relacoes transmitidas pela apresentacao podem ser determinadas programaticamente ou estao disponiveis em texto. Um paragrafo que so parece titulo, ou uma tabela cuja primeira linha so parece cabecalho, nao satisfazem o criterio."
+    },
+    {
+      "id": "2.4.2",
+      "titulo": "Page Titled",
+      "nivel": "A",
+      "aplicabilidadeIct": "com_substituicao",
+      "substituicoes": [
+        { "termo": "web page", "substituto": "documento nao-web" }
+      ],
+      "notaIct": "O criterio usa o termo 'web page'. Aplicado a documento nao-web, le-se 'documento': o documento tem titulo que descreve topico ou proposito. Em OOXML o titulo vive nas propriedades do pacote (docProps/core.xml, dc:title), nao no texto do corpo.",
+      "resumo": "O documento tem titulo que descreve seu topico ou proposito. Titulo ausente ou em branco obriga quem usa leitor de tela a abrir o arquivo para saber o que ele e."
+    },
+    {
+      "id": "2.4.4",
+      "titulo": "Link Purpose (In Context)",
+      "nivel": "A",
+      "aplicabilidadeIct": "direta",
+      "substituicoes": [],
+      "notaIct": "O criterio nao contem termo especifico de web e vale para documento nao-web que contenha links. Documento sem link nenhum nao tem como violar este criterio.",
+      "resumo": "O proposito de cada link pode ser determinado pelo texto do link sozinho, ou pelo texto no contexto em que ele aparece. Texto generico como 'clique aqui' e URL crua nao descrevem destino."
+    },
+    {
+      "id": "3.1.1",
+      "titulo": "Language of Page",
+      "nivel": "A",
+      "aplicabilidadeIct": "com_substituicao",
+      "substituicoes": [
+        { "termo": "web page", "substituto": "documento nao-web" }
+      ],
+      "notaIct": "O criterio usa o termo 'web page'. Aplicado a documento nao-web, le-se: o idioma humano padrao do documento pode ser determinado programaticamente. Em OOXML isso e o w:lang, no padrao de estilo (word/styles.xml, docDefaults) ou nos runs.",
+      "resumo": "O idioma humano padrao do documento pode ser determinado programaticamente. Sem ele o leitor de tela pronuncia o texto com as regras fonéticas do idioma errado."
     }
   ]
 }

@@ -7,6 +7,9 @@ import dev.accessai.analise.dominio.ProblemaRepository;
 import dev.accessai.analise.dominio.SituacaoAnalise;
 import dev.accessai.analise.evento.AnaliseSolicitadaV1;
 import dev.accessai.analise.evento.ProdutorDeAnalise;
+import dev.accessai.analise.regras.MotorDeRegras;
+import dev.accessai.analise.score.CalculadoraDeScore;
+import dev.accessai.analise.score.ScoreDaAnalise;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
@@ -32,6 +35,8 @@ public class ServicoDeAnalise {
     private final RegistroDeAnalise registro;
     private final ValidadorDeDocx validador;
     private final ProdutorDeAnalise produtor;
+    private final CalculadoraDeScore calculadora;
+    private final MotorDeRegras motor;
     private final Clock clock;
 
     public ServicoDeAnalise(AnaliseRepository analiseRepository,
@@ -39,12 +44,16 @@ public class ServicoDeAnalise {
                             RegistroDeAnalise registro,
                             ValidadorDeDocx validador,
                             ProdutorDeAnalise produtor,
+                            CalculadoraDeScore calculadora,
+                            MotorDeRegras motor,
                             Clock clock) {
         this.analiseRepository = analiseRepository;
         this.problemaRepository = problemaRepository;
         this.registro = registro;
         this.validador = validador;
         this.produtor = produtor;
+        this.calculadora = calculadora;
+        this.motor = motor;
         this.clock = clock;
     }
 
@@ -77,13 +86,27 @@ public class ServicoDeAnalise {
     /**
      * Le a analise e ja a converte para {@link VisaoDaAnalise}, ainda dentro da
      * transacao. Nenhuma entidade sai deste metodo (CLAUDE.md secao 5).
+     *
+     * <p>O score e calculado aqui, na leitura, e nao gravado no banco: ele e
+     * funcao pura dos problemas persistidos mais a configuracao de pesos.
+     * Persisti-lo criaria uma copia que diverge no dia em que um peso mudar.
+     * A contrapartida esta declarada no README: mudar peso muda a nota de
+     * analises antigas.
+     *
+     * <p>Analise que ainda nao concluiu nao recebe score. Pontuar um documento
+     * que ninguem processou seria afirmar conformidade sem verificacao.
      */
     @Transactional(readOnly = true)
     public VisaoDaAnalise buscar(UUID analiseId) {
         Analise analise = analiseRepository.findById(analiseId)
                 .orElseThrow(() -> new AnaliseNaoEncontradaException(analiseId));
         List<Problema> problemas = problemaRepository.findByAnaliseIdOrderByCriadoEmAsc(analiseId);
-        return VisaoDaAnalise.de(analise, problemas);
+
+        ScoreDaAnalise score = analise.getSituacao() == SituacaoAnalise.CONCLUIDA
+                ? calculadora.calcular(problemas, motor.principiosAvaliados())
+                : ScoreDaAnalise.naoCalculado();
+
+        return VisaoDaAnalise.de(analise, problemas, score);
     }
 
     private static String calcularSha256(byte[] conteudo) {

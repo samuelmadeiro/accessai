@@ -74,6 +74,24 @@ accessai:
     topico-analise-solicitada: accessai.analise.solicitada.v1
     particoes: 3
     replicas: 1
+  score:
+    # Peso de cada principio WCAG na nota global. Iguais por padrao: nao ha
+    # evidencia publicada para hierarquizar principios, e um 35/30/25/10
+    # inventado daria ao score uma precisao que ele nao tem. Principio sem
+    # nenhuma regra implementada fica FORA da media, com os pesos
+    # renormalizados — nao entra valendo 100.
+    pesos:
+      perceptivel: 25
+      operavel: 25
+      compreensivel: 25
+      robusto: 25
+    # Pontos descontados por problema. A escala foi escolhida para que sete
+    # problemas de severidade ALTA zerem uma categoria.
+    penalidades:
+      critica: 25
+      alta: 15
+      media: 8
+      baixa: 3
 
 logging:
   level:

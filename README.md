@@ -5,7 +5,7 @@ para critérios WCAG, com evidência rastreável até o ponto exato do documento
 
 ---
 
-## Estado atual: Slice 1 de 9
+## Estado atual: Slice 2 de 9
 
 Este README descreve **o que existe e roda hoje**, não o que está planejado.
 O projeto é construído em fatias verticais finas (`CLAUDE.md` §7), uma por vez.
@@ -14,37 +14,73 @@ O projeto é construído em fatias verticais finas (`CLAUDE.md` §7), uma por ve
 |---|---|---|
 | 0 | Decisões D1–D6 e ADRs | [documento](docs/architecture/fase-0.md) — D1 aprovado, D2–D6 abertos |
 | 1 | Upload → Kafka → 1 regra → Postgres → `GET /analyses/{id}` | **Pronta** |
-| 2 | Rule Engine completo (6+ regras) e score por categoria | não iniciada |
+| 2 | Rule Engine completo (6 regras) e score por categoria | **Pronta** |
 | 3 | Retry, DLT, idempotência completa, correlation ID | não iniciada |
 | 4–5 | Dataset, treino e ML Service | não iniciada |
 | 6–7 | AI Gateway e copilot | não iniciada |
 | 8–9 | Frontend acessível, observabilidade | não iniciada |
 
 **Não existe ML nem IA neste repositório ainda.** Não há `ml-service/`, não há
-modelo treinado, não há chamada a LLM. A Slice 1 é 100% determinística: uma
-regra que lê um atributo XML. Quando ML e IA entrarem, entram como camadas de
-interpretação sobre o Rule Engine — nunca como substituto dele (`CLAUDE.md` §2).
+modelo treinado, não há chamada a LLM. Tudo aqui é determinístico: seis regras
+que leem XML. Quando ML e IA entrarem, entram como camadas de interpretação
+sobre o Rule Engine — nunca como substituto dele (`CLAUDE.md` §2).
 
-### A única regra implementada
+### As seis regras implementadas
 
-`IMAGEM_SEM_TEXTO_ALTERNATIVO` — WCAG **1.1.1 Non-text Content**, nível A.
+| Regra | Critério WCAG | Nível | Severidade | O que detecta |
+|---|---|---|---|---|
+| `IMAGEM_SEM_TEXTO_ALTERNATIVO` | 1.1.1 Non-text Content | A | ALTA | `wp:docPr` sem `descr` numa imagem |
+| `TABELA_SEM_CABECALHO` | 1.3.1 Info and Relationships | A | ALTA | primeira linha sem `w:tblHeader` |
+| `ORDEM_HIERARQUICA_CABECALHOS` | 1.3.1 Info and Relationships | A | MEDIA | H1 direto para H3, ou documento que começa em H2 |
+| `TITULO_AUSENTE` | 2.4.2 Page Titled | A | MEDIA | `dc:title` ausente ou em branco em `docProps/core.xml` |
+| `LINK_SEM_TEXTO_DESCRITIVO` | 2.4.4 Link Purpose | A | MEDIA | "clique aqui", "saiba mais", ou a URL como texto |
+| `IDIOMA_NAO_DECLARADO` | 3.1.1 Language of Page | A | ALTA | nenhum `w:lang` no padrão do documento |
 
-Distingue três estados, e a distinção é o ponto da regra:
+### Onde o falso positivo mora, e o que cada regra recusa fazer
 
-| Estado no XML | Significado | É problema? |
-|---|---|---|
-| `descr` ausente | texto alternativo faltando | **sim** |
-| `descr=""` ou só espaços | imagem declarada como decorativa | não |
-| `descr="Gráfico de..."` | texto alternativo presente | não |
+O trabalho de uma regra determinística não é achar problema: é achar problema
+sem inventar. Cada uma tem um caso que ela **se recusa** a marcar.
 
-Tratar `descr=""` como defeito produziria falso positivo em todo documento bem
-marcado — exatamente o contrário do objetivo.
+- **`descr=""` não é defeito.** É a forma prevista de declarar imagem
+  decorativa, e o próprio 1.1.1 admite conteúdo que a tecnologia assistiva pode
+  ignorar. Tratar vazio como defeito produziria falso positivo em todo documento
+  bem marcado.
+- **Nem todo desenho é imagem.** `wp:docPr` existe em qualquer desenho: caixa de
+  texto, autoforma, gráfico, SmartArt. Um desenho só vira imagem quando a
+  subárvore tem `pic:pic`, `a:blip` ou `v:imagedata`.
+- **Tabela vazia não precisa de cabeçalho.** Tabela sem linha nenhuma aparece em
+  documento real como recurso de diagramação.
+- **Subir de nível não é salto.** Voltar de H3 para H1 é fim de seção, não erro.
+- **Link sem texto não é problema de 2.4.4.** Ele costuma envolver uma imagem, e
+  quem responde é a 1.1.1 — marcar os dois viraria um defeito em dois problemas.
+- **Texto curto não é texto ruim.** "Portaria 145" descreve o destino melhor que
+  muita frase longa; a lista de expressões genéricas é fechada, sem heurística
+  de tamanho.
 
-**E nem todo desenho é imagem.** `wp:docPr` — o elemento que carrega o alt text —
-existe em qualquer desenho: caixa de texto, autoforma, gráfico, SmartArt. Contar
-todos como imagem transformava toda caixa de texto de edital em "imagem sem alt".
-Um desenho só entra na regra quando a própria subárvore tem `pic:pic`, `a:blip`
-ou `v:imagedata` — a marca de que há bitmap ali.
+### Score explicável
+
+Nota de 0 a 100 por princípio WCAG, e o princípio sai do número do critério —
+1.x Perceptível, 2.x Operável, 3.x Compreensível, 4.x Robusto. Não existe tabela
+de regra→categoria em lugar nenhum.
+
+```
+penalidade = soma por severidade (CRITICA 25, ALTA 15, MEDIA 8, BAIXA 3)
+categoria  = max(0, 100 - penalidade)
+global     = média ponderada — só dos princípios que têm regra
+```
+
+Pesos e penalidades ficam em `application.yml`, não no código: eles são
+**escolha**, não medida. A WCAG não pontua nada e não hierarquiza princípios, e
+por isso os pesos são iguais por padrão — um 35/30/25/10 inventado daria ao
+número uma precisão que ele não tem.
+
+**Princípio sem regra fica fora da média.** Hoje nenhuma regra verifica 4.x, e
+`naoAvaliados: ["ROBUSTO"]` vem na resposta. Dar 100 a uma categoria que o
+sistema não verifica seria afirmar conformidade inexistente — o mesmo defeito
+que tirou o Apache POI do caminho de extração.
+
+O score **não é gravado**: é função pura dos problemas persistidos mais a
+configuração, calculada na leitura. A contrapartida está em Limitações.
 
 ---
 
@@ -92,10 +128,18 @@ Resposta real, de um edital publicado por uma prefeitura brasileira:
 ```json
 {
   "situacao": "CONCLUIDA",
-  "nomeArquivo": "Modelo-de-Edital-Fomento-a-Execucao-de-Acoes-Culturais.docx",
+  "nomeArquivo": "edital-com-problemas.docx",
   "tipoMimeDetectado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "tamanhoBytes": 381243,
-  "totalDeProblemas": 1,
+  "totalDeProblemas": 6,
+  "score": {
+    "global": 77,
+    "categorias": [
+      { "principio": "PERCEPTIVEL",   "titulo": "Perceptivel",   "score": 62, "peso": 25, "problemas": 3, "penalidade": 38 },
+      { "principio": "OPERAVEL",      "titulo": "Operavel",      "score": 84, "peso": 25, "problemas": 2, "penalidade": 16 },
+      { "principio": "COMPREENSIVEL", "titulo": "Compreensivel", "score": 85, "peso": 25, "problemas": 1, "penalidade": 15 }
+    ],
+    "naoAvaliados": ["ROBUSTO"]
+  },
   "problemas": [
     {
       "regraId": "IMAGEM_SEM_TEXTO_ALTERNATIVO",
@@ -104,13 +148,32 @@ Resposta real, de um edital publicado por uma prefeitura brasileira:
       "severidade": "ALTA",
       "partePacote": "word/header1.xml",
       "evidencia": "imagem 'Imagem 8' nao tem atributo de texto alternativo (descr)"
+    },
+    {
+      "regraId": "TABELA_SEM_CABECALHO",
+      "criterioWcag": "1.3.1",
+      "nivelWcag": "A",
+      "severidade": "ALTA",
+      "partePacote": "word/document.xml",
+      "evidencia": "tabela 1 (4 linhas) nao marca a primeira linha como cabecalho (w:tblHeader)"
+    },
+    {
+      "regraId": "IDIOMA_NAO_DECLARADO",
+      "criterioWcag": "3.1.1",
+      "nivelWcag": "A",
+      "severidade": "ALTA",
+      "partePacote": "word/styles.xml",
+      "evidencia": "o documento nao declara idioma em lugar nenhum (w:lang ausente)"
     }
   ]
 }
 ```
 
-Repare em `partePacote`: a imagem está no **cabeçalho**, não no corpo. Metade
-das imagens do corpus real está fora de `word/document.xml`.
+Três coisas para reparar. **`partePacote`**: a imagem está no cabeçalho, não no
+corpo — metade das imagens do corpus real está fora de `word/document.xml`.
+**`penalidade` e `problemas` por categoria**: cada ponto perdido rastreia até os
+problemas que o causaram. **`naoAvaliados`**: 77 quer dizer "77 no que foi
+medido", e o que não foi medido está dito na própria resposta.
 
 ### Derrubar
 
@@ -138,17 +201,19 @@ infraestrutura**: um teste que troca o broker por um mock não prova que o
 contrato do tópico funciona, que é justamente o que esta slice precisa
 demonstrar.
 
-Sete casos ponta a ponta: documento com problema, documento acessível (zero
-falso positivo), imagem só no cabeçalho, caixa de texto sem alt (que **não** pode
-virar problema), documento que quebra no parsing e termina em `FALHOU`, conteúdo
-que não é DOCX (`422`) e análise inexistente (`404`).
+Seis casos ponta a ponta: documento que viola cinco regras (com o score exato
+conferido), documento acessível que tira 100 sem nenhum falso positivo, imagem só
+no cabeçalho, documento que quebra no parsing e termina em `FALHOU` sem score,
+conteúdo que não é DOCX (`422`) e análise inexistente (`404`).
 
-Além deles, **46 testes unitários** que não precisam de Docker e rodam em
-segundos — extrator (`mc:Fallback`, VML, cabeçalho e rodapé, partes de
-configuração, XML hostil), validador (assinatura, limites de zip bomb), catálogo
-WCAG, motor de regras e a política de falha do consumidor. Antes eles não
-existiam: a suíte verde do `spike/` testava o código do spike, que já tinha
-divergido do extrator de produção.
+Além deles, **144 testes unitários** que não precisam de Docker e rodam em
+segundos: extrator e os sete coletores, uma suíte por regra (cada uma com o caso
+de conformidade que ela precisa **não** marcar), calculadora de score, catálogo
+WCAG, motor de regras, validador de upload e a política de falha do consumidor.
+
+**Nenhum `.docx` binário no repositório.** Os pacotes de teste são montados em
+memória por `DocxDeTeste`, com o XML à vista ao lado da asserção — um zip
+commitado é um arquivo que ninguém revisa em pull request.
 
 **O E2E exige Docker.** Sem ele a suíte é *pulada*, não quebrada — o build
 falharia com um stack trace de "Could not find a valid Docker environment", que
@@ -181,9 +246,10 @@ POST /analyses
                     │
       ┌─────────────┘
       │  consumidor idempotente (chave = eventId)
-      ├─ extrai imagens de TODAS as partes do pacote
-      ├─ executa o Rule Engine
-      └─ grava problemas ──► GET /analyses/{id}
+      ├─ UMA passagem pelo pacote alimenta 7 coletores
+      │     imagens · tabelas · títulos · links · idioma · dc:title · rels
+      ├─ executa as 6 regras sobre os fatos extraídos
+      └─ grava problemas ──► GET /analyses/{id} + score calculado na leitura
             │
             └─ falha permanente ──► situacao = FALHOU
 ```
@@ -196,6 +262,12 @@ reentregar: banco fora do ar não é defeito do documento do usuário. Retry com
 backoff e DLT continuam sendo a Slice 3.
 
 ### Decisões que valem explicar
+
+**A extração faz uma passagem só.** `ZipInputStream` é sequencial: reabrir o
+pacote por regra multiplicaria a leitura por seis. Cada coletor declara em
+`aceita(parte)` o que lhe interessa, e parte que ninguém quer nem é parseada.
+Duas responsabilidades ficam no varredor, e não nos coletores, porque valem para
+todos: a profundidade do elemento e o descarte da subárvore `mc:Fallback`.
 
 **A extração não usa Apache POI.** O POI não enxerga desenho dentro de
 `mc:AlternateContent` e devolve **zero imagens** nesse caso — falso negativo
@@ -279,7 +351,7 @@ backend/     Spring Boot 4.1, Java 25 — API, Rule Engine, extração, Kafka
 spike/       projeto descartável: POI × parsing XML direto (decisão registrada)
 datasets/    manifesto do corpus real; binários fora do git
 docs/
-  adr/                     uma decisão por arquivo (0001–0008)
+  adr/                     uma decisão por arquivo (0001–0009)
   architecture/fase-0.md   decisões D1–D6 e condições C-1 a C-3
   wcag/criteria.json       tabela versionada de critérios
   journal/01-slice.md      diário da Slice 1
@@ -323,15 +395,24 @@ descuido:
 - **Sem retry com backoff e sem DLT.** Falha permanente já vira `FALHOU` com log
   de erro; falha transitória é reentregue pelo Kafka com o comportamento padrão
   do `DefaultErrorHandler`, que não é política, é default. Slice 3.
-- **Sem score.** Score por categoria é a Slice 2.
+- **O score não é persistido.** É recalculado a cada leitura a partir dos
+  problemas gravados. Mudar um peso em `application.yml` muda a nota de análises
+  antigas. Uma coluna de score com versão da configuração entra quando existir
+  listagem ou histórico — antes disso seria estado duplicado que diverge.
+- **100 significa "sem problema no que foi medido"**, não "documento acessível".
+  Seis regras cobrem uma fração da WCAG; o campo `naoAvaliados` existe para que
+  ninguém leia o número sozinho.
+- **Contraste (1.4.3) não entrou.** É a regra mais cara do projeto — cascata de
+  cor com `themeTint`/`themeShade` — e segue como a última da fila.
+- **Link em campo `HYPERLINK`** (`w:instrText`, forma legada) não é visto pelo
+  coletor de links.
 - **Sem autenticação e sem isolamento por usuário.** A migration que trouxer
   autenticação adiciona `owner_id` e o teste que prova o isolamento.
 - **Binário em `bytea` no banco principal** não sobrevive à Slice 5, quando o
   ML Service for outro processo — ele não pode ler este banco (`CLAUDE.md` §5).
-- **Uma única regra.** O corpus real mostrou 4 imagens em 9 documentos, todas
-  sem alt utilizável. Amostra pequena para conclusão forte.
-- **Fixtures e corpus são sintéticos.** Os pacotes de teste são montados em
-  memória (`DocxDeTeste`), modelados no que Word, Google Docs e LibreOffice
-  produzem — mas não são exports reais. A validação contra exports reais dos três
-  programas continua pendente, e é a mesma crítica que este projeto faz ao
-  dataset sintético em D2.
+- **Seis regras.** O corpus real mostrou 4 imagens em 9 documentos, todas sem
+  alt utilizável. Amostra pequena para conclusão forte sobre qualquer regra.
+- **Os pacotes de teste são sintéticos.** Montados em memória, modelados no que
+  Word, Google Docs e LibreOffice produzem — mas não são exports reais. A
+  validação contra exports reais dos três programas continua pendente, e é a
+  mesma crítica que este projeto faz ao dataset sintético em D2.

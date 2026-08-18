@@ -16,11 +16,15 @@ import java.util.zip.ZipOutputStream;
  * ninguem consegue revisar em pull request, e a armadilha que ele exercita fica
  * so no nome do arquivo. Aqui o XML esta a vista, ao lado da assercao.
  *
- * <p>Publica porque o teste ponta a ponta tambem monta pacote hostil.
+ * <p>O pacote base e deliberadamente pobre: so {@code [Content_Types].xml} e
+ * {@code word/document.xml}. Sem {@code docProps/core.xml} e sem
+ * {@code word/styles.xml} — ou seja, sem titulo e sem idioma. Teste que quer um
+ * documento conforme precisa dizer isso explicitamente, o que deixa visivel o
+ * que cada caso esta afirmando.
  *
  * <p>As estruturas imitam o que Word, Google Docs e LibreOffice produzem de
- * verdade — mesma base do corpus sintetico do spike. Continuam sendo sinteticas:
- * a validacao contra exports reais e outra coisa, e esta pendente.
+ * verdade. Continuam sendo sinteticas: a validacao contra exports reais e outra
+ * coisa, e esta pendente.
  */
 public final class DocxDeTeste {
 
@@ -35,12 +39,15 @@ public final class DocxDeTeste {
             + "xmlns:v=\"urn:schemas-microsoft-com:vml\" "
             + "xmlns:o=\"urn:schemas-microsoft-com:office:office\"";
 
+    private static final String TIPO_HYPERLINK =
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink";
+
     private final Map<String, String> partes = new LinkedHashMap<>();
 
     private DocxDeTeste() {
     }
 
-    /** Pacote minimo valido: [Content_Types].xml e word/document.xml. */
+    /** Pacote minimo valido: sem titulo, sem idioma, corpo vazio. */
     public static DocxDeTeste pacote() {
         DocxDeTeste d = new DocxDeTeste();
         d.partes.put("[Content_Types].xml",
@@ -60,6 +67,61 @@ public final class DocxDeTeste {
     /** Substitui o corpo de word/document.xml pelos fragmentos dados. */
     public DocxDeTeste comCorpo(String... fragmentos) {
         return com("word/document.xml", documento(String.join("", fragmentos)));
+    }
+
+    /** {@code docProps/core.xml} com dc:title. {@code null} escreve o elemento vazio. */
+    public DocxDeTeste comTitulo(String titulo) {
+        return com("docProps/core.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<cp:coreProperties "
+                + "xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/"
+                + "core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">"
+                + "<dc:title>" + (titulo == null ? "" : titulo) + "</dc:title>"
+                + "<dc:creator>teste</dc:creator>"
+                + "</cp:coreProperties>");
+    }
+
+    /** {@code docProps/core.xml} SEM dc:title — ausente, e nao em branco. */
+    public DocxDeTeste comPropriedadesSemTitulo() {
+        return com("docProps/core.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<cp:coreProperties "
+                + "xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/"
+                + "core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">"
+                + "<dc:creator>teste</dc:creator>"
+                + "</cp:coreProperties>");
+    }
+
+    /** {@code word/styles.xml} com o idioma padrao do documento em docDefaults. */
+    public DocxDeTeste comIdiomaPadrao(String idioma) {
+        return com("word/styles.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<w:styles " + NS + "><w:docDefaults><w:rPrDefault><w:rPr>"
+                + "<w:lang w:val=\"" + idioma + "\" w:eastAsia=\"en-US\"/>"
+                + "</w:rPr></w:rPrDefault></w:docDefaults></w:styles>");
+    }
+
+    /** {@code word/styles.xml} sem nenhum w:lang. */
+    public DocxDeTeste comEstilosSemIdioma() {
+        return com("word/styles.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<w:styles " + NS + "><w:docDefaults><w:rPrDefault><w:rPr>"
+                + "<w:lang w:val=\"x-none\"/>"
+                + "</w:rPr></w:rPrDefault></w:docDefaults></w:styles>");
+    }
+
+    /** Relacionamentos de hyperlink de word/document.xml. */
+    public DocxDeTeste comLinksExternos(Map<String, String> destinosPorId) {
+        StringBuilder xml = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/"
+                + "relationships\">");
+        destinosPorId.forEach((id, destino) -> xml
+                .append("<Relationship Id=\"").append(id)
+                .append("\" Type=\"").append(TIPO_HYPERLINK)
+                .append("\" Target=\"").append(destino)
+                .append("\" TargetMode=\"External\"/>"));
+        xml.append("</Relationships>");
+        return com("word/_rels/document.xml.rels", xml.toString());
     }
 
     public byte[] bytes() {
@@ -85,9 +147,72 @@ public final class DocxDeTeste {
                 + "<w:document " + NS + "><w:body>" + corpo + "</w:body></w:document>";
     }
 
-    public static String cabecalho(String corpo) {
+    public static String cabecalhoDePagina(String corpo) {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                 + "<w:hdr " + NS + ">" + corpo + "</w:hdr>";
+    }
+
+    public static String paragrafo(String texto) {
+        return "<w:p><w:r><w:t>" + texto + "</w:t></w:r></w:p>";
+    }
+
+    /** Titulo pelo identificador do estilo, como Word e Google Docs gravam. */
+    public static String tituloPorEstilo(int nivel, String texto) {
+        return "<w:p><w:pPr><w:pStyle w:val=\"Heading" + nivel + "\"/></w:pPr>"
+                + "<w:r><w:t>" + texto + "</w:t></w:r></w:p>";
+    }
+
+    /** Titulo com nome de estilo em portugues, como Word pt-BR grava. */
+    public static String tituloPorEstiloEmPortugues(int nivel, String texto) {
+        return "<w:p><w:pPr><w:pStyle w:val=\"Ttulo" + nivel + "\"/></w:pPr>"
+                + "<w:r><w:t>" + texto + "</w:t></w:r></w:p>";
+    }
+
+    /** Titulo por outlineLvl, que e 0-based: 0 e H1. */
+    public static String tituloPorOutline(int nivel, String texto) {
+        return "<w:p><w:pPr><w:pStyle w:val=\"MeuEstiloProprio\"/>"
+                + "<w:outlineLvl w:val=\"" + (nivel - 1) + "\"/></w:pPr>"
+                + "<w:r><w:t>" + texto + "</w:t></w:r></w:p>";
+    }
+
+    /** Paragrafo de corpo com outlineLvl 9, que significa "nao e titulo". */
+    public static String corpoComOutlineDeTexto(String texto) {
+        return "<w:p><w:pPr><w:outlineLvl w:val=\"9\"/></w:pPr>"
+                + "<w:r><w:t>" + texto + "</w:t></w:r></w:p>";
+    }
+
+    public static String tabela(int linhas, boolean primeiraLinhaEhCabecalho) {
+        return tabela(linhas, primeiraLinhaEhCabecalho ? "<w:tblHeader/>" : "");
+    }
+
+    /** Permite montar o w:trPr da primeira linha na mao, para o caso val="false". */
+    public static String tabela(int linhas, String trPrDaPrimeiraLinha) {
+        StringBuilder xml = new StringBuilder("<w:tbl><w:tblPr/>");
+        for (int i = 1; i <= linhas; i++) {
+            xml.append("<w:tr>");
+            if (i == 1 && !trPrDaPrimeiraLinha.isEmpty()) {
+                xml.append("<w:trPr>").append(trPrDaPrimeiraLinha).append("</w:trPr>");
+            }
+            xml.append("<w:tc><w:p><w:r><w:t>celula ").append(i)
+               .append("</w:t></w:r></w:p></w:tc></w:tr>");
+        }
+        return xml.append("</w:tbl>").toString();
+    }
+
+    /** Tabela sem nenhuma linha: recurso de diagramacao, nao tabela de dados. */
+    public static String tabelaVazia() {
+        return "<w:tbl><w:tblPr/></w:tbl>";
+    }
+
+    public static String link(String idDoRelacionamento, String texto) {
+        return "<w:p><w:hyperlink r:id=\"" + idDoRelacionamento + "\">"
+                + "<w:r><w:t>" + texto + "</w:t></w:r></w:hyperlink></w:p>";
+    }
+
+    /** Link para ancora interna: sem r:id, portanto sem destino externo. */
+    public static String linkInterno(String ancora, String texto) {
+        return "<w:p><w:hyperlink w:anchor=\"" + ancora + "\">"
+                + "<w:r><w:t>" + texto + "</w:t></w:r></w:hyperlink></w:p>";
     }
 
     /** {@code descr = null} significa atributo AUSENTE, diferente de vazio. */
@@ -113,7 +238,7 @@ public final class DocxDeTeste {
                 + graficoDeImagem() + "</wp:inline></w:drawing></w:r></w:p>";
     }
 
-    static String imagemAncorada(String nome, String descr) {
+    public static String imagemAncorada(String nome, String descr) {
         return "<w:p><w:r><w:drawing><wp:anchor>" + docPr(nome, descr)
                 + graficoDeImagem() + "</wp:anchor></w:drawing></w:r></w:p>";
     }
@@ -122,7 +247,7 @@ public final class DocxDeTeste {
      * Caixa de texto: {@code wp:docPr} igual ao de uma imagem, mas o conteudo e
      * {@code wps:wsp} — forma com texto dentro, sem bitmap nenhum.
      */
-    static String caixaDeTexto(String nome, String texto) {
+    public static String caixaDeTexto(String nome, String texto) {
         return "<w:p><w:r><w:drawing><wp:inline>" + docPr(nome, null)
                 + "<a:graphic><a:graphicData uri=\"http://schemas.microsoft.com/office/"
                 + "word/2010/wordprocessingShape\"><wps:wsp><wps:txbx><w:txbxContent>"
@@ -132,7 +257,8 @@ public final class DocxDeTeste {
     }
 
     /** Caixa de texto com uma imagem dentro: desenho aninhado em desenho. */
-    static String caixaDeTextoComImagem(String nomeDaCaixa, String nomeDaImagem, String descr) {
+    public static String caixaDeTextoComImagem(String nomeDaCaixa, String nomeDaImagem,
+                                               String descr) {
         return "<w:p><w:r><w:drawing><wp:inline>" + docPr(nomeDaCaixa, null)
                 + "<a:graphic><a:graphicData uri=\"http://schemas.microsoft.com/office/"
                 + "word/2010/wordprocessingShape\"><wps:wsp><wps:txbx><w:txbxContent>"
@@ -142,14 +268,14 @@ public final class DocxDeTeste {
     }
 
     /** VML legado com bitmap: v:shape que carrega v:imagedata. */
-    static String imagemVml(String id, String alt) {
+    public static String imagemVml(String id, String alt) {
         String atributoAlt = alt == null ? "" : " alt=\"" + alt + "\"";
         return "<w:p><w:r><w:pict><v:shape id=\"" + id + "\"" + atributoAlt + ">"
                 + "<v:imagedata r:id=\"rId5\"/></v:shape></w:pict></w:r></w:p>";
     }
 
     /** VML sem bitmap: autoforma, linha decorativa. Nao e imagem. */
-    static String formaVml(String id) {
+    public static String formaVml(String id) {
         return "<w:p><w:r><w:pict><v:shape id=\"" + id + "\" style=\"width:72pt\">"
                 + "<v:textbox><w:txbxContent><w:p/></w:txbxContent></v:textbox>"
                 + "</v:shape></w:pict></w:r></w:p>";
@@ -159,11 +285,12 @@ public final class DocxDeTeste {
      * O mesmo desenho declarado duas vezes: moderno em {@code mc:Choice},
      * legado em {@code mc:Fallback}. Contar dois seria inflar o denominador.
      */
-    static String alternateContent(String nome, String descr) {
+    public static String alternateContent(String nome, String descr) {
         return "<w:p><w:r><mc:AlternateContent><mc:Choice Requires=\"wps\">"
                 + "<w:drawing><wp:inline>" + docPr(nome, descr) + graficoDeImagem()
                 + "</wp:inline></w:drawing></mc:Choice>"
-                + "<mc:Fallback><w:pict><v:shape id=\"legado\" alt=\"" + (descr == null ? "" : descr)
+                + "<mc:Fallback><w:pict><v:shape id=\"legado\" alt=\""
+                + (descr == null ? "" : descr)
                 + "\"><v:imagedata r:id=\"rId5\"/></v:shape></w:pict></mc:Fallback>"
                 + "</mc:AlternateContent></w:r></w:p>";
     }

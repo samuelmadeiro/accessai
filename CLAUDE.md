@@ -130,9 +130,28 @@ O score **nunca** é uma predição de ML. É uma soma ponderada de penalidades
 determinísticas, e cada ponto perdido rastreia até um problema específico com
 evidência e critério WCAG.
 
+As categorias são os quatro princípios da WCAG, e a categoria de um problema
+sai do **número do critério** — 1.x Perceptível, 2.x Operável, 3.x Compreensível,
+4.x Robusto. Não existe tabela de regra→categoria: ela seria uma segunda fonte de
+verdade para algo que a própria numeração já define.
+
 ```
-Structure 25% | Content 25% | Visual 20% | Semantic 20% | Metadata 10%
+Perceptível 25% | Operável 25% | Compreensível 25% | Robusto 25%
 ```
+
+Pesos iguais por padrão, e configuráveis em `application.yml`. Não há evidência
+publicada para hierarquizar princípios; um 35/30/25/10 inventado daria ao score
+uma precisão que ele não tem. Quem mudar passa a ter que defender o motivo.
+
+**Princípio sem nenhuma regra implementada fica fora da média**, com os pesos
+renormalizados, e a resposta declara quais foram deixados de fora. Dar 100 a uma
+categoria que o sistema não verifica é afirmar conformidade inexistente — o mesmo
+defeito que tirou o Apache POI do caminho de extração.
+
+> Esta seção substituiu, na Slice 2, o modelo anterior de cinco categorias
+> (Structure/Content/Visual/Semantic/Metadata). O motivo está no ADR 0009: aquele
+> modelo exigia um mapeamento regra→categoria escrito à mão, e deixava a
+> categoria Visual sem nenhuma regra até a de contraste existir.
 
 ML pode ajustar a *severidade* de um problema. Nunca o score final diretamente.
 

@@ -5,8 +5,9 @@ import static dev.accessai.analise.regras.CatalogoWcagTest.criterio;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.accessai.analise.dominio.PrincipioWcag;
 import dev.accessai.analise.dominio.Problema;
-import dev.accessai.analise.extracao.ImagemDoDocumento;
+import dev.accessai.analise.extracao.DocumentoExtraido;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +26,7 @@ class MotorDeRegrasTest {
 
     private static final UUID ANALISE = UUID.randomUUID();
     private static final Instant AGORA = Instant.parse("2026-08-19T12:00:00Z");
+    private static final DocumentoExtraido QUALQUER = DocumentoExtraido.vazio();
 
     @Test
     @DisplayName("regra que cita criterio inexistente derruba a subida da aplicacao")
@@ -44,7 +46,7 @@ class MotorDeRegrasTest {
                 List.of(new RegraFalsa("REGRA_AA", "2.4.2")),
                 catalogoCom(criterio("2.4.2", "direta")));
 
-        List<Problema> problemas = motor.executar(ANALISE, List.of(), AGORA);
+        List<Problema> problemas = motor.executar(ANALISE, QUALQUER, AGORA);
 
         assertThat(problemas).singleElement().satisfies(p -> {
             assertThat(p.getNivelWcag()).isEqualTo(Problema.Nivel.AA);
@@ -62,7 +64,7 @@ class MotorDeRegrasTest {
                 List.of(new RegraFalsa("REGRA_INAPLICAVEL", "2.4.5")),
                 catalogoCom(criterio("2.4.5", "inaplicavel")));
 
-        assertThat(motor.executar(ANALISE, List.of(), AGORA))
+        assertThat(motor.executar(ANALISE, QUALQUER, AGORA))
                 .as("criterio inaplicavel vira recomendacao, e recomendacao nao e problema")
                 .isEmpty();
     }
@@ -72,14 +74,39 @@ class MotorDeRegrasTest {
     void semRegras() {
         MotorDeRegras motor = new MotorDeRegras(List.of(), catalogoCom());
 
-        assertThat(motor.executar(ANALISE, List.of(), AGORA)).isEmpty();
+        assertThat(motor.executar(ANALISE, QUALQUER, AGORA)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("os principios avaliados saem do numero dos criterios das regras")
+    void principiosAvaliados() {
+        MotorDeRegras motor = new MotorDeRegras(
+                List.of(new RegraFalsa("A", "1.1.1"), new RegraFalsa("B", "1.3.1"),
+                        new RegraFalsa("C", "3.1.1")),
+                catalogoCom(criterio("1.1.1", "direta"), criterio("1.3.1", "direta"),
+                        criterio("3.1.1", "direta")));
+
+        assertThat(motor.principiosAvaliados())
+                .containsExactlyInAnyOrder(PrincipioWcag.PERCEPTIVEL, PrincipioWcag.COMPREENSIVEL);
+    }
+
+    @Test
+    @DisplayName("criterio inaplicavel nao faz o principio contar como avaliado")
+    void principioDeCriterioInaplicavelNaoConta() {
+        MotorDeRegras motor = new MotorDeRegras(
+                List.of(new RegraFalsa("A", "1.1.1"), new RegraFalsa("B", "2.4.5")),
+                catalogoCom(criterio("1.1.1", "direta"), criterio("2.4.5", "inaplicavel")));
+
+        assertThat(motor.principiosAvaliados())
+                .as("regra que nunca gera violacao nao verifica nada")
+                .containsExactly(PrincipioWcag.PERCEPTIVEL);
     }
 
     /** Regra de teste: sempre acha um problema, para isolar o motor da regra real. */
     private record RegraFalsa(String id, String criterioWcag) implements RegraDeAcessibilidade {
 
         @Override
-        public List<Achado> avaliar(List<ImagemDoDocumento> imagens) {
+        public List<Achado> avaliar(DocumentoExtraido documento) {
             return List.of(new Achado(Problema.Severidade.MEDIA, "word/document.xml",
                     "achado de teste"));
         }
