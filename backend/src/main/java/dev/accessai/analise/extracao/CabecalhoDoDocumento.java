@@ -1,5 +1,7 @@
 package dev.accessai.analise.extracao;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Um paragrafo marcado como titulo, na ordem em que aparece no corpo.
  *
@@ -13,7 +15,7 @@ package dev.accessai.analise.extracao;
 public record CabecalhoDoDocumento(String partePacote, int nivel, String texto) {
 
     /** Titulo longo vira evidencia ilegivel; o comeco basta para localizar. */
-    public String resumo() {
+    public @NonNull String resumo() {
         String limpo = texto == null ? "" : texto.strip();
         if (limpo.isEmpty()) {
             return "(sem texto)";

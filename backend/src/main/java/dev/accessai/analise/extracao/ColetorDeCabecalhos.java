@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.xml.stream.XMLStreamReader;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Coleta os paragrafos que sao titulo, na ordem do corpo.
@@ -119,7 +120,7 @@ final class ColetorDeCabecalhos implements ColetorDeParte {
                 : java.util.Optional.empty();
     }
 
-    private static boolean ehElemento(XMLStreamReader r, String local) {
+    private static boolean ehElemento(@NonNull XMLStreamReader r, String local) {
         return Ooxml.NS_W.equals(r.getNamespaceURI()) && local.equals(r.getLocalName());
     }
 

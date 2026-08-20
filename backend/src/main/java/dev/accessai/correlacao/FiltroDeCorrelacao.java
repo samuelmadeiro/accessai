@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.jspecify.annotations.NonNull;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -25,8 +26,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class FiltroDeCorrelacao extends OncePerRequestFilter {
 
     @Override
-    protected void doFilterInternal(HttpServletRequest requisicao, HttpServletResponse resposta,
-                                    FilterChain cadeia) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest requisicao,
+                                    @NonNull HttpServletResponse resposta,
+                                    @NonNull FilterChain cadeia) throws ServletException, IOException {
         String correlationId = Correlacao.normalizar(requisicao.getHeader(Correlacao.CABECALHO));
         Correlacao.definir(correlationId);
         resposta.setHeader(Correlacao.CABECALHO, correlationId);

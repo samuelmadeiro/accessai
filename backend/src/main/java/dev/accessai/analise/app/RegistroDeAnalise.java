@@ -10,6 +10,7 @@ import dev.accessai.analise.outbox.EventoDeOutboxRepository;
 import dev.accessai.config.PropriedadesAccessAi;
 import java.time.Instant;
 import java.util.UUID;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -37,11 +38,11 @@ public class RegistroDeAnalise {
     private final ObjectMapper objectMapper;
     private final String topico;
 
-    public RegistroDeAnalise(AnaliseRepository analiseRepository,
-                             DocumentoBinarioRepository documentoRepository,
-                             EventoDeOutboxRepository outboxRepository,
-                             ObjectMapper objectMapper,
-                             PropriedadesAccessAi propriedades) {
+    public RegistroDeAnalise(@NonNull AnaliseRepository analiseRepository,
+                             @NonNull DocumentoBinarioRepository documentoRepository,
+                             @NonNull EventoDeOutboxRepository outboxRepository,
+                             @NonNull ObjectMapper objectMapper,
+                             @NonNull PropriedadesAccessAi propriedades) {
         this.analiseRepository = analiseRepository;
         this.documentoRepository = documentoRepository;
         this.outboxRepository = outboxRepository;
@@ -50,8 +51,9 @@ public class RegistroDeAnalise {
     }
 
     @Transactional
-    public Analise registrar(byte[] conteudo, String nomeArquivo, String tipoDetectado,
-                             String sha256, UUID correlationId, Instant agora) {
+    public @NonNull Analise registrar(byte @NonNull [] conteudo, @NonNull String nomeArquivo,
+                                      @NonNull String tipoDetectado, @NonNull String sha256,
+                                      @NonNull UUID correlationId, @NonNull Instant agora) {
         Analise analise = analiseRepository.save(Analise.receber(
                 correlationId, nomeArquivo, tipoDetectado, conteudo.length, sha256, agora));
         documentoRepository.save(DocumentoBinario.de(analise.getId(), conteudo));

@@ -5,6 +5,7 @@ import dev.accessai.analise.app.ServicoDeAnalise;
 import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,8 +33,8 @@ public class AnaliseController {
     }
 
     @PostMapping
-    public ResponseEntity<AnaliseDto.RespostaDeRecebimento> receber(
-            @RequestParam("file") MultipartFile arquivo) throws IOException {
+    public @NonNull ResponseEntity<AnaliseDto.RespostaDeRecebimento> receber(
+            @RequestParam("file") @NonNull MultipartFile arquivo) throws IOException {
 
         if (arquivo.isEmpty()) {
             throw new DocumentoInvalidoException("nenhum conteudo enviado");
@@ -49,7 +50,7 @@ public class AnaliseController {
         return AnaliseDto.RespostaDeAnalise.de(servico.buscar(id));
     }
 
-    private static String nomeSeguro(MultipartFile arquivo) {
+    private static @NonNull String nomeSeguro(@NonNull MultipartFile arquivo) {
         String original = arquivo.getOriginalFilename();
         if (original == null || original.isBlank()) {
             return "sem-nome.docx";

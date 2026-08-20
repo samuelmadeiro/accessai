@@ -75,6 +75,17 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!--
+      Anotacoes de nulidade. Vem transitiva pelo Spring Framework 7, mas o
+      codigo usa @NonNull diretamente: dependencia direta se declara, senao
+      uma troca de versao no Boot derruba a compilacao sem aviso.
+      A versao vem do spring-boot-dependencies.
+    -->
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+
     <!-- ===================== teste ===================== -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

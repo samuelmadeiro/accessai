@@ -7,6 +7,7 @@ import dev.accessai.analise.score.ScorePorPrincipio;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Representacoes de saida da API.
@@ -22,7 +23,7 @@ public final class AnaliseDto {
     /** Resposta do POST /analyses. */
     public record RespostaDeRecebimento(UUID analiseId, UUID correlationId, String situacao) {
 
-        public static RespostaDeRecebimento de(ServicoDeAnalise.ResultadoDoRecebimento resultado) {
+        public static @NonNull RespostaDeRecebimento de(ServicoDeAnalise.@NonNull ResultadoDoRecebimento resultado) {
             return new RespostaDeRecebimento(resultado.analiseId(), resultado.correlationId(),
                     resultado.situacao().name());
         }
@@ -43,7 +44,7 @@ public final class AnaliseDto {
             ScoreDoDocumento score,
             List<ProblemaEncontrado> problemas) {
 
-        public static RespostaDeAnalise de(VisaoDaAnalise visao) {
+        public static @NonNull RespostaDeAnalise de(@NonNull VisaoDaAnalise visao) {
             List<ProblemaEncontrado> problemas = visao.problemas().stream()
                     .map(ProblemaEncontrado::de)
                     .toList();
@@ -63,7 +64,7 @@ public final class AnaliseDto {
             String partePacote,
             String evidencia) {
 
-        public static ProblemaEncontrado de(VisaoDaAnalise.ProblemaVisto p) {
+        public static @NonNull ProblemaEncontrado de(VisaoDaAnalise.@NonNull ProblemaVisto p) {
             return new ProblemaEncontrado(p.regraId(), p.criterioWcag(),
                     p.nivelWcag().name(), p.severidade().name(),
                     p.partePacote(), p.evidencia());
@@ -84,7 +85,7 @@ public final class AnaliseDto {
     public record ScoreDoDocumento(Integer global, List<CategoriaDoScore> categorias,
                                    List<String> naoAvaliados) {
 
-        public static ScoreDoDocumento de(ScoreDaAnalise score) {
+        public static @NonNull ScoreDoDocumento de(@NonNull ScoreDaAnalise score) {
             return new ScoreDoDocumento(
                     score.global(),
                     score.categorias().stream().map(CategoriaDoScore::de).toList(),
@@ -96,7 +97,7 @@ public final class AnaliseDto {
     public record CategoriaDoScore(String principio, String titulo, int score, int peso,
                                    int problemas, int penalidade) {
 
-        public static CategoriaDoScore de(ScorePorPrincipio categoria) {
+        public static @NonNull CategoriaDoScore de(@NonNull ScorePorPrincipio categoria) {
             return new CategoriaDoScore(categoria.principio().name(), categoria.titulo(),
                     categoria.score(), categoria.peso(), categoria.problemas(),
                     categoria.penalidade());

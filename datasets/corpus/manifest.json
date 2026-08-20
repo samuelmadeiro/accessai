@@ -1,5 +1,5 @@
 {
-  "gerado_em": "2026-08-19T18:47:16+00:00",
+  "gerado_em": "2026-08-20T19:01:36+00:00",
   "aviso": "Os binarios NAO estao versionados. Rode scripts/fetch-corpus.py para reconstruir datasets/corpus/raw/ e confira pelo sha256.",
   "documentos": [
     {
@@ -43,6 +43,7 @@
       "bytes": 103975,
       "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "coletado_em": "2026-08-19T18:46:58+00:00",
+      "verificado_em": "2026-08-20T19:00:46+00:00",
       "partes_xml": [
         "word/document.xml",
         "word/endnotes.xml",
@@ -70,6 +71,7 @@
       "bytes": 43781,
       "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "coletado_em": "2026-08-19T18:47:01+00:00",
+      "verificado_em": "2026-08-20T19:00:52+00:00",
       "partes_xml": [
         "word/document.xml",
         "word/fontTable.xml",
@@ -94,6 +96,7 @@
       "bytes": 27169,
       "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "coletado_em": "2026-08-19T18:47:03+00:00",
+      "verificado_em": "2026-08-20T19:00:55+00:00",
       "partes_xml": [
         "word/document.xml",
         "word/fontTable.xml",
@@ -116,6 +119,7 @@
       "bytes": 85065,
       "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "coletado_em": "2026-08-19T18:47:07+00:00",
+      "verificado_em": "2026-08-20T19:01:20+00:00",
       "partes_xml": [
         "word/document.xml",
         "word/endnotes.xml",
@@ -140,6 +144,7 @@
       "bytes": 13140,
       "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "coletado_em": "2026-08-19T18:47:08+00:00",
+      "verificado_em": "2026-08-20T19:01:22+00:00",
       "partes_xml": [
         "word/document.xml",
         "word/fontTable.xml",
@@ -161,6 +166,7 @@
       "bytes": 57753,
       "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "coletado_em": "2026-08-19T18:47:10+00:00",
+      "verificado_em": "2026-08-20T19:01:28+00:00",
       "partes_xml": [
         "word/document.xml",
         "word/fontTable.xml",
@@ -183,6 +189,7 @@
       "bytes": 19418,
       "content_type_declarado": "application/msword",
       "coletado_em": "2026-08-19T18:47:13+00:00",
+      "verificado_em": "2026-08-20T19:01:31+00:00",
       "partes_xml": [
         "word/document.xml",
         "word/fontTable.xml",
@@ -205,6 +212,7 @@
       "bytes": 381243,
       "content_type_declarado": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "coletado_em": "2026-08-19T18:47:14+00:00",
+      "verificado_em": "2026-08-20T19:01:33+00:00",
       "partes_xml": [
         "word/commentsDocument.xml",
         "word/commentsExtendedDocument.xml",
@@ -228,28 +236,18 @@
   ],
   "falhas": [
     {
-      "url": "https://www.gov.br/agu/pt-br/composicao/cgu/cgu/ecju/servicoscom/parametrizados/modelo-reconhecimento-divida-scom.docx",
-      "orgao": "AGU/CGU",
-      "esfera": "federal",
-      "categoria": "modelo juridico",
-      "licenca": "nao declarada",
-      "erro": "HTTP 404"
-    },
-    {
       "url": "https://portaldeimigracao.mj.gov.br/images/trabalho-estrangeiro/nova-legislacao/item/download/ANEXO%20I%20-%20FORMUL%C3%81RIO%20RN%2001.docx",
       "orgao": "Ministerio da Justica",
       "esfera": "federal",
       "categoria": "formulario",
       "licenca": "nao declarada",
-      "erro": "nao e zip (sem assinatura PK)"
-    },
-    {
-      "url": "https://www.funcap.ce.gov.br/wp-content/uploads/sites/52/2021/09/Modelo-Projeto-Edital-.docx",
-      "orgao": "FUNCAP/CE",
-      "esfera": "estadual",
-      "categoria": "edital",
-      "licenca": "nao declarada",
-      "erro": "HTTP 404"
+      "erro": "nao e zip (sem assinatura PK)",
+      "detalhe": {
+        "http_status": 200,
+        "content_type_declarado": "text/html;charset=utf-8",
+        "primeiros_bytes": "b'<!DOCTYPE html>\\n<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"pt-br\" xml:lang'"
+      },
+      "observado_em": "2026-08-20T19:01:18+00:00"
     },
     {
       "url": "https://www.donafrancisca.rs.gov.br/arqs/4689.docx",
@@ -257,7 +255,49 @@
       "esfera": "municipal",
       "categoria": "edital",
       "licenca": "nao declarada",
-      "erro": "nao e zip (sem assinatura PK)"
+      "erro": "nao e zip (sem assinatura PK)",
+      "detalhe": {
+        "http_status": 200,
+        "content_type_declarado": "text/html",
+        "primeiros_bytes": "b'\\n<!DOCTYPE html>\\n<html lang=\"en\">\\n  <head>\\n    <meta charset=\"UTF-8\" />\\n    <met'"
+      },
+      "observado_em": "2026-08-20T19:01:35+00:00"
+    },
+    {
+      "url": "https://www.funcap.ce.gov.br/wp-content/uploads/sites/52/2021/09/Modelo-Projeto-Edital-.docx",
+      "orgao": "FUNCAP/CE",
+      "esfera": "estadual",
+      "categoria": "edital",
+      "licenca": "nao declarada",
+      "erro": "HTTP 404",
+      "detalhe": {
+        "http_status": 404,
+        "content_type_declarado": "text/html; charset=iso-8859-1"
+      },
+      "observado_em": "2026-08-20T19:01:30+00:00"
+    },
+    {
+      "url": "https://www.gov.br/agu/pt-br/composicao/cgu/cgu/ecju/servicoscom/parametrizados/modelo-reconhecimento-divida-scom.docx",
+      "orgao": "AGU/CGU",
+      "esfera": "federal",
+      "categoria": "modelo juridico",
+      "licenca": "nao declarada",
+      "erro": "HTTP 404",
+      "detalhe": {
+        "http_status": 404,
+        "content_type_declarado": "application/json"
+      },
+      "observado_em": "2026-08-20T19:00:47+00:00"
+    },
+    {
+      "url": "https://www.gov.br/agu/pt-br/composicao/cgu/cgu/modelos/licitacoesecontratos/edital-para-pregao-eletronico-sem-dedicacao-exclusiva_fev_22.docx",
+      "orgao": "AGU/CGU",
+      "esfera": "federal",
+      "categoria": "edital",
+      "licenca": "nao declarada",
+      "erro": "rede: [WinError 10054] Foi forçado o cancelamento de uma conexão existente pelo host remoto",
+      "detalhe": {},
+      "observado_em": "2026-08-20T19:00:43+00:00"
     }
   ]
 }

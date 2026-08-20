@@ -15,6 +15,7 @@ import dev.accessai.analise.regras.MotorDeRegras;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -66,7 +67,7 @@ public class ExecucaoDaAnalise {
     }
 
     @Transactional
-    public void executar(AnaliseSolicitadaV1 evento) {
+    public void executar(@NonNull AnaliseSolicitadaV1 evento) {
         if (eventoRepository.existsById(evento.eventId())) {
             log.info("evento ja processado, ignorando eventId={} analiseId={} correlationId={}",
                     evento.eventId(), evento.analiseId(), evento.correlationId());
@@ -104,7 +105,7 @@ public class ExecucaoDaAnalise {
                 extraido.links().size(), problemas.size());
     }
 
-    private void registrarProcessado(AnaliseSolicitadaV1 evento) {
+    private void registrarProcessado(@NonNull AnaliseSolicitadaV1 evento) {
         eventoRepository.save(EventoProcessado.de(
                 evento.eventId(), NOME_DO_CONSUMIDOR, clock.instant()));
     }

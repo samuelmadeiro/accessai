@@ -170,7 +170,8 @@ def escrever_manifesto(documentos: dict[str, dict], falhas: dict[str, dict]) -> 
             },
             ensure_ascii=False,
             indent=2,
-        ),
+        )
+        + "\n",
         encoding="utf-8",
     )
 

@@ -3,6 +3,7 @@ package dev.accessai.analise.api;
 import dev.accessai.analise.app.AnaliseNaoEncontradaException;
 import dev.accessai.analise.app.DocumentoInvalidoException;
 import dev.accessai.config.PropriedadesAccessAi;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -24,24 +25,24 @@ public class TratadorDeErros {
     }
 
     @ExceptionHandler(DocumentoInvalidoException.class)
-    public ResponseEntity<AnaliseDto.Erro> documentoInvalido(DocumentoInvalidoException e) {
+    public @NonNull ResponseEntity<AnaliseDto.Erro> documentoInvalido(@NonNull DocumentoInvalidoException e) {
         // Nivel INFO: e erro do cliente, nao incidente do servidor.
         log.info("upload recusado: {}", e.getMessage());
-        return ResponseEntity.unprocessableEntity()
+        return ResponseEntity.unprocessableContent()
                 .body(new AnaliseDto.Erro("DOCUMENTO_INVALIDO", e.getMessage()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<AnaliseDto.Erro> arquivoGrandeDemais(MaxUploadSizeExceededException e) {
+    public @NonNull ResponseEntity<AnaliseDto.Erro> arquivoGrandeDemais(@NonNull MaxUploadSizeExceededException e) {
         log.info("upload recusado por tamanho: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
                 .body(new AnaliseDto.Erro("ARQUIVO_GRANDE_DEMAIS",
                         "documento excede o tamanho maximo permitido de "
                                 + propriedades.upload().tamanhoMaximo()));
     }
 
     @ExceptionHandler(AnaliseNaoEncontradaException.class)
-    public ResponseEntity<AnaliseDto.Erro> naoEncontrada(AnaliseNaoEncontradaException e) {
+    public @NonNull ResponseEntity<AnaliseDto.Erro> naoEncontrada(@NonNull AnaliseNaoEncontradaException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new AnaliseDto.Erro("ANALISE_NAO_ENCONTRADA", e.getMessage()));
     }
