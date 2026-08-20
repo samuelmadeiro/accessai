@@ -23,4 +23,20 @@ public class TopicosKafkaConfig {
                 .replicas(kafka.replicas())
                 .build();
     }
+
+    /**
+     * A DLT tem o MESMO numero de particoes do topico de origem.
+     *
+     * <p>O desvio preserva a particao do registro original; com menos particoes
+     * aqui, a mensagem cairia numa particao inexistente e o proprio desvio
+     * falharia — no pior momento possivel, que e quando algo ja deu errado.
+     */
+    @Bean
+    public NewTopic topicoAnaliseSolicitadaDlt(PropriedadesAccessAi propriedades) {
+        PropriedadesAccessAi.Kafka kafka = propriedades.kafka();
+        return TopicBuilder.name(kafka.topicoAnaliseSolicitada() + ".DLT")
+                .partitions(kafka.particoes())
+                .replicas(kafka.replicas())
+                .build();
+    }
 }

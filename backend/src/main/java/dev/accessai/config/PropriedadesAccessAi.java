@@ -9,12 +9,38 @@ import org.springframework.util.unit.DataSize;
  * os numeros do score sao decisoes de operacao, nao constantes de classe.
  */
 @ConfigurationProperties(prefix = "accessai")
-public record PropriedadesAccessAi(Upload upload, Kafka kafka, Score score) {
+public record PropriedadesAccessAi(Upload upload, Kafka kafka, Score score,
+                                   Outbox outbox) {
 
     public record Upload(DataSize tamanhoMaximo) {
     }
 
-    public record Kafka(String topicoAnaliseSolicitada, int particoes, short replicas) {
+    public record Kafka(String topicoAnaliseSolicitada, int particoes, short replicas,
+                        Retry retry) {
+
+        /**
+         * Politica de reentrega do consumidor.
+         *
+         * @param tentativas         quantas REtentativas depois da primeira falha
+         * @param intervaloInicialMs espera antes da primeira reentrega
+         * @param multiplicador      fator de crescimento entre tentativas
+         * @param intervaloMaximoMs  teto do backoff, para o retry nao virar espera eterna
+         */
+        public record Retry(int tentativas, long intervaloInicialMs, double multiplicador,
+                            long intervaloMaximoMs) {
+        }
+    }
+
+    /**
+     * Publicador do outbox.
+     *
+     * @param intervaloMs           pausa entre ciclos de leitura da tabela
+     * @param tamanhoDoLote         maximo de eventos por ciclo; limita o tempo que
+     *                              a transacao segura as linhas travadas
+     * @param timeoutDePublicacaoMs quanto esperar a confirmacao do broker antes de
+     *                              contar a tentativa como falha
+     */
+    public record Outbox(long intervaloMs, int tamanhoDoLote, long timeoutDePublicacaoMs) {
     }
 
     /**

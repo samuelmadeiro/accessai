@@ -212,11 +212,13 @@ class CalculadoraDeScoreTest {
                                                int robusto) {
         PropriedadesAccessAi propriedades = new PropriedadesAccessAi(
                 new PropriedadesAccessAi.Upload(DataSize.ofMegabytes(25)),
-                new PropriedadesAccessAi.Kafka("topico", 1, (short) 1),
+                new PropriedadesAccessAi.Kafka("topico", 1, (short) 1,
+                        new PropriedadesAccessAi.Kafka.Retry(4, 500, 2.0, 10_000)),
                 new PropriedadesAccessAi.Score(
                         new PropriedadesAccessAi.Score.Pesos(perceptivel, operavel, compreensivel,
                                 robusto),
-                        new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)));
+                        new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
+                new PropriedadesAccessAi.Outbox(500, 50, 5_000));
         return new CalculadoraDeScore(propriedades);
     }
 }

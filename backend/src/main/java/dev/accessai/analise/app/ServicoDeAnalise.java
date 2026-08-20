@@ -5,11 +5,10 @@ import dev.accessai.analise.dominio.AnaliseRepository;
 import dev.accessai.analise.dominio.Problema;
 import dev.accessai.analise.dominio.ProblemaRepository;
 import dev.accessai.analise.dominio.SituacaoAnalise;
-import dev.accessai.analise.evento.AnaliseSolicitadaV1;
-import dev.accessai.analise.evento.ProdutorDeAnalise;
 import dev.accessai.analise.regras.MotorDeRegras;
 import dev.accessai.analise.score.CalculadoraDeScore;
 import dev.accessai.analise.score.ScoreDaAnalise;
+import dev.accessai.correlacao.Correlacao;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
@@ -25,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>Servico nao tem SQL e controller nao tem regra de negocio (CONTRIBUTING.md
  * secao 5). O que este servico decide: se o conteudo e aceitavel, qual o
- * correlationId da jornada e quando o evento pode ser publicado.
+ * correlationId da jornada e o que vai para o outbox.
  */
 @Service
 public class ServicoDeAnalise {
@@ -34,7 +33,6 @@ public class ServicoDeAnalise {
     private final ProblemaRepository problemaRepository;
     private final RegistroDeAnalise registro;
     private final ValidadorDeDocx validador;
-    private final ProdutorDeAnalise produtor;
     private final CalculadoraDeScore calculadora;
     private final MotorDeRegras motor;
     private final Clock clock;
@@ -43,7 +41,6 @@ public class ServicoDeAnalise {
                             ProblemaRepository problemaRepository,
                             RegistroDeAnalise registro,
                             ValidadorDeDocx validador,
-                            ProdutorDeAnalise produtor,
                             CalculadoraDeScore calculadora,
                             MotorDeRegras motor,
                             Clock clock) {
@@ -51,34 +48,32 @@ public class ServicoDeAnalise {
         this.problemaRepository = problemaRepository;
         this.registro = registro;
         this.validador = validador;
-        this.produtor = produtor;
         this.calculadora = calculadora;
         this.motor = motor;
         this.clock = clock;
     }
 
     /**
-     * Recebe o documento, persiste e publica o evento.
+     * Recebe o documento e grava tudo — analise, binario e evento — numa
+     * transacao so.
      *
-     * <p>A publicacao acontece DEPOIS do commit, de proposito. Publicar dentro
-     * da transacao permite que o consumidor leia o evento antes de a linha
-     * existir e nao encontre o binario.
+     * <p>Nada e publicado aqui. A publicacao e trabalho do
+     * {@code PublicadorDeOutbox}, que le a tabela depois do commit. Foi o que
+     * eliminou a janela em que a analise existia no banco e o evento nao existia
+     * em lugar nenhum.
      *
-     * <p>Falha conhecida e aceita nesta slice: se o processo morrer entre o
-     * commit e a publicacao, a analise fica em RECEBIDA para sempre. A solucao
-     * e o padrao outbox, que entra na Slice 3 junto com retry e DLT.
+     * <p>O correlationId vem do MDC, preenchido pelo filtro HTTP a partir do
+     * cabecalho {@code X-Correlation-ID} — ou gerado, quando o cliente nao
+     * manda. Assim a jornada do cliente e a jornada interna sao a mesma.
      */
     public ResultadoDoRecebimento receber(byte[] conteudo, String nomeArquivo) {
         String tipoDetectado = validador.detectarTipo(conteudo);
         String sha256 = calcularSha256(conteudo);
-        UUID correlationId = UUID.randomUUID();
+        UUID correlationId = Correlacao.atualComoUuid();
         Instant agora = clock.instant();
 
         Analise analise = registro.registrar(conteudo, nomeArquivo, tipoDetectado, sha256,
                 correlationId, agora);
-
-        produtor.publicar(AnaliseSolicitadaV1.de(
-                correlationId, analise.getId(), nomeArquivo, sha256, agora));
 
         return new ResultadoDoRecebimento(analise.getId(), correlationId, analise.getSituacao());
     }
@@ -90,8 +85,6 @@ public class ServicoDeAnalise {
      * <p>O score e calculado aqui, na leitura, e nao gravado no banco: ele e
      * funcao pura dos problemas persistidos mais a configuracao de pesos.
      * Persisti-lo criaria uma copia que diverge no dia em que um peso mudar.
-     * A contrapartida esta declarada no README: mudar peso muda a nota de
-     * analises antigas.
      *
      * <p>Analise que ainda nao concluiu nao recebe score. Pontuar um documento
      * que ninguem processou seria afirmar conformidade sem verificacao.

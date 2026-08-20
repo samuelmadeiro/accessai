@@ -74,6 +74,20 @@ accessai:
     topico-analise-solicitada: accessai.analise.solicitada.v1
     particoes: 3
     replicas: 1
+    # Backoff exponencial: 500ms, 1s, 2s, 4s. Esgotadas as tentativas, a
+    # mensagem vai para <topico>.DLT e a analise e marcada como FALHOU.
+    retry:
+      tentativas: 4
+      intervalo-inicial-ms: 500
+      multiplicador: 2.0
+      intervalo-maximo-ms: 10000
+  outbox:
+    # Intervalo curto porque o upload e sincrono para o usuario: ele recebe 201 e
+    # espera o processamento comecar logo. O custo e um SELECT por ciclo num
+    # indice parcial que so cobre pendentes.
+    intervalo-ms: 500
+    tamanho-do-lote: 50
+    timeout-de-publicacao-ms: 5000
   score:
     # Peso de cada principio WCAG na nota global. Iguais por padrao: nao ha
     # evidencia publicada para hierarquizar principios, e um 35/30/25/10
@@ -96,3 +110,7 @@ accessai:
 logging:
   level:
     dev.accessai: INFO
+  # O correlationId entra em TODA linha de log. Sem isso ele existiria no MDC e
+  # nao apareceria em lugar nenhum, que e o mesmo que nao existir.
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{correlationId:-sem-correlacao}] %logger{36} - %msg%n"

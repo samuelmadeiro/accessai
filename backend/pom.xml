@@ -88,6 +88,17 @@
     </dependency>
 
     <!--
+      Espera com condicao para os testes de resiliencia: o desfecho de um retry
+      chega quando chega. Thread.sleep fixo passa aqui e falha no CI.
+      A versao vem do spring-boot-dependencies.
+    -->
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!--
       Testcontainers 2.x renomeou TODOS os modulos para o prefixo
       testcontainers-*. Em 1.x era org.testcontainers:postgresql; esse
       coordenada nao existe em 2.x.

@@ -5,7 +5,7 @@ para critérios WCAG, com evidência rastreável até o ponto exato do documento
 
 ---
 
-## Estado atual: Slice 2 de 9
+## Estado atual: Slice 3 de 9
 
 Este README descreve **o que existe e roda hoje**, não o que está planejado.
 O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma por vez.
@@ -15,7 +15,7 @@ O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma 
 | 0 | Decisões D1–D6 e ADRs | [documento](docs/architecture/fase-0.md) — D1 aprovado, D2–D6 abertos |
 | 1 | Upload → Kafka → 1 regra → Postgres → `GET /analyses/{id}` | **Pronta** |
 | 2 | Rule Engine completo (6 regras) e score por categoria | **Pronta** |
-| 3 | Retry, DLT, idempotência completa, correlation ID | não iniciada |
+| 3 | Outbox, retry com backoff, DLT, correlation ID | **Pronta** |
 | 4–5 | Dataset, treino e ML Service | não iniciada |
 | 6–7 | AI Gateway e copilot | não iniciada |
 | 8–9 | Frontend acessível, observabilidade | não iniciada |
@@ -201,12 +201,20 @@ infraestrutura**: um teste que troca o broker por um mock não prova que o
 contrato do tópico funciona, que é justamente o que esta slice precisa
 demonstrar.
 
-Seis casos ponta a ponta: documento que viola cinco regras (com o score exato
-conferido), documento acessível que tira 100 sem nenhum falso positivo, imagem só
-no cabeçalho, documento que quebra no parsing e termina em `FALHOU` sem score,
-conteúdo que não é DOCX (`422`) e análise inexistente (`404`).
+Onze casos ponta a ponta, em duas suítes. **Fluxo** (6): documento que viola
+cinco regras com o score exato conferido, documento acessível que tira 100 sem
+falso positivo, imagem só no cabeçalho, documento que quebra no parsing, conteúdo
+que não é DOCX (`422`) e análise inexistente (`404`). **Resiliência** (5): o
+outbox marcado como publicado só após a confirmação do broker, falha transitória
+reentregue com backoff até concluir, falha permanente desviada para a DLT com a
+análise em `FALHOU` e a causa registrada, evento duplicado que não duplica
+problema, e o `X-Correlation-ID` do cliente atravessando HTTP, banco e evento.
 
-Além deles, **144 testes unitários** que não precisam de Docker e rodam em
+A falha transitória é forçada com um espião sobre `ExecucaoDaAnalise`: derrubar o
+Postgres no meio do teste produziria a mesma exceção com um teste lento e
+instável.
+
+Além deles, **163 testes unitários** que não precisam de Docker e rodam em
 segundos: extrator e os sete coletores, uma suíte por regra (cada uma com o caso
 de conformidade que ela precisa **não** marcar), calculadora de score, catálogo
 WCAG, motor de regras, validador de upload e a política de falha do consumidor.
@@ -235,12 +243,13 @@ cd spike && mvn test
 ## Arquitetura da Slice 1
 
 ```
-POST /analyses
+POST /analyses            X-Correlation-ID entra (ou é gerado) e vai para o MDC
       │
       ├─ valida o tipo REAL do conteúdo (assinatura zip + partes OOXML)
-      ├─ grava analise + binário no Postgres  ── commit ──┐
-      │                                                    │
-      └─ publica AnaliseSolicitadaV1 ─────────────────────┘
+      └─ MESMA transação: analise + binário + outbox_evento ── commit
+                    │
+      PublicadorDeOutbox (a cada 500ms, FOR UPDATE SKIP LOCKED)
+      publica ──► espera o broker confirmar ──► marca publicado_em
                     │
          accessai.analise.solicitada.v1  (Kafka, KRaft)
                     │
@@ -251,15 +260,25 @@ POST /analyses
       ├─ executa as 6 regras sobre os fatos extraídos
       └─ grava problemas ──► GET /analyses/{id} + score calculado na leitura
             │
-            └─ falha permanente ──► situacao = FALHOU
+            └─ exceção ──► retry 500ms, 1s, 2s, 4s ──► .DLT ──► situacao = FALHOU
 ```
 
+**O evento não se perde mais.** Gravar a análise e gravar a intenção de publicar
+são a mesma transação. Se o processo morrer antes de publicar, a linha continua
+pendente no `outbox_evento` e o próximo ciclo do publicador a leva. O preço está
+declarado: entrega **at-least-once** — morrer entre publicar e marcar republica o
+evento, e `evento_processado` deduplica pelo `eventId`.
+
 **Falha permanente × transitória.** Pacote que não abre, binário ausente, linha
-inexistente: reprocessar dá o mesmo resultado, então a análise vai para `FALHOU`
-numa transação nova (`REQUIRES_NEW` — a transação original já está condenada ao
-rollback) e a mensagem morre ali. Qualquer outra exceção sobe para o Kafka
-reentregar: banco fora do ar não é defeito do documento do usuário. Retry com
-backoff e DLT continuam sendo a Slice 3.
+inexistente: reprocessar dá o mesmo resultado. Essas exceções estão em
+`addNotRetryableExceptions` e vão direto para a DLT, sem gastar tentativa.
+Qualquer outra sobe e é reentregue com backoff exponencial — banco fora do ar não
+é defeito do documento do usuário. Esgotadas as tentativas, a mensagem vai para
+`accessai.analise.solicitada.v1.DLT`, e é o consumidor da DLT que marca a análise
+como `FALHOU` e grava a causa em `evento_em_dlt`.
+
+A política inteira mora em `KafkaConfig`, não em `try/catch` do consumidor: mudar
+de 4 para 6 tentativas não pode exigir tocar em código de domínio.
 
 ### Decisões que valem explicar
 
@@ -351,7 +370,7 @@ backend/     Spring Boot 4.1, Java 25 — API, Rule Engine, extração, Kafka
 spike/       projeto descartável: POI × parsing XML direto (decisão registrada)
 datasets/    manifesto do corpus real; binários fora do git
 docs/
-  adr/                     uma decisão por arquivo (0001–0009)
+  adr/                     uma decisão por arquivo (0001–0010)
   architecture/fase-0.md   decisões D1–D6 e condições C-1 a C-3
   wcag/criteria.json       tabela versionada de critérios
   journal/01-slice.md      diário da Slice 1
@@ -382,19 +401,42 @@ Nada de Redis ainda: ele só ganha função a partir da Slice 3.
 autenticação (ADR 0004) esse endpoint entra na configuração de segurança; hoje
 qualquer um que alcance a porta 8080 lê o estado do banco e do broker.
 
-O `correlationId` entra no MDC no consumidor, então dá para seguir uma jornada do
-upload até o último log atravessando a fronteira do tópico.
+**Correlation ID.** Todo `POST`/`GET` aceita `X-Correlation-ID` e **devolve** o
+valor no cabeçalho da resposta — sem isso, quem chamou não tem como citar a
+requisição ao relatar um problema. O id atravessa quatro contextos: MDC da
+requisição, coluna `correlation_id`, payload do evento e cabeçalho do registro
+Kafka. O consumidor lê o **cabeçalho**, não o corpo, para que o log já esteja
+correlacionado mesmo quando a desserialização do payload falha.
+
+O valor recebido é **validado, não saneado**: só `[A-Za-z0-9-]{1,64}` passa, e
+qualquer outra coisa é trocada por um id gerado. Um cabeçalho com quebra de linha
+injeta linha falsa no log, e log falsificado é pior que log ausente.
+
+Toda linha de log carrega o id:
+
+```
+14:32:07.118 INFO  [7c9e6679-7425-40de-944b-e07fc1f90ae7] d.a.a.o.PublicadorDeOutbox - evento publicado ...
+```
+
+**Diagnóstico por consulta, não por log.** `outbox_evento` guarda `tentativas` e
+`ultimo_erro`; `evento_em_dlt` guarda a exceção original de tudo que esgotou o
+retry. Métrica exportada é a Slice 9 — hoje são duas consultas SQL.
 
 ## Limitações conhecidas
 
 Registradas aqui porque estão no código como dívida consciente, não como
 descuido:
 
-- **Sem outbox.** O evento é publicado depois do commit. Se o processo morrer
-  entre commit e publicação, a análise fica em `RECEBIDA` para sempre. Slice 3.
-- **Sem retry com backoff e sem DLT.** Falha permanente já vira `FALHOU` com log
-  de erro; falha transitória é reentregue pelo Kafka com o comportamento padrão
-  do `DefaultErrorHandler`, que não é política, é default. Slice 3.
+- **Entrega at-least-once, não exactly-once.** Morrer entre publicar e marcar
+  republica o evento. É deliberado: `evento_processado` deduplica pelo `eventId`,
+  e duplicata detectável é melhor que evento perdido.
+- **`outbox_evento` cresce para sempre.** Não há expurgo de eventos publicados.
+  Entra quando incomodar — não antes (`CONTRIBUTING.md` §5).
+- **A DLT não tem reprocessador.** Mensagem parada lá exige ação humana; não há
+  endpoint que a devolva ao tópico principal.
+- **Polling de 500 ms.** O `201` volta na hora, mas o processamento começa em até
+  meio segundo. Trocar polling por CDC (Debezium) custaria Kafka Connect no
+  compose, contra o alvo de `docker compose up` (ADR 0006).
 - **O score não é persistido.** É recalculado a cada leitura a partir dos
   problemas gravados. Mudar um peso em `application.yml` muda a nota de análises
   antigas. Uma coluna de score com versão da configuração entra quando existir

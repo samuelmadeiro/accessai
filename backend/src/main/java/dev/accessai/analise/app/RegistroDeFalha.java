@@ -5,21 +5,22 @@ import dev.accessai.analise.dominio.AnaliseRepository;
 import dev.accessai.analise.dominio.EventoProcessado;
 import dev.accessai.analise.dominio.EventoProcessadoRepository;
 import dev.accessai.analise.evento.AnaliseSolicitadaV1;
+import dev.accessai.analise.outbox.EventoEmDlt;
+import dev.accessai.analise.outbox.EventoEmDltRepository;
 import java.time.Clock;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Marca uma analise como FALHOU numa transacao propria.
+ * Fecha o ciclo de uma analise que falhou: FALHOU no banco e registro do que
+ * chegou na DLT.
  *
- * <p>{@code REQUIRES_NEW} nao e enfeite: a transacao que processava a analise
- * ja foi marcada para rollback quando a excecao subiu. Gravar FALHOU dentro
- * dela seria gravar nada — e a analise ficaria em RECEBIDA para sempre, que e
- * exatamente o defeito que este componente existe para fechar.
+ * <p>Quem chama e o consumidor da DLT, depois de o retry ter se esgotado. A
+ * transicao de estado acontece num lugar so, e nao espalhada por cada ponto que
+ * pode lancar excecao.
  */
 @Component
 public class RegistroDeFalha {
@@ -28,24 +29,40 @@ public class RegistroDeFalha {
 
     private final AnaliseRepository analiseRepository;
     private final EventoProcessadoRepository eventoRepository;
+    private final EventoEmDltRepository dltRepository;
     private final Clock clock;
 
     public RegistroDeFalha(AnaliseRepository analiseRepository,
                            EventoProcessadoRepository eventoRepository,
+                           EventoEmDltRepository dltRepository,
                            Clock clock) {
         this.analiseRepository = analiseRepository;
         this.eventoRepository = eventoRepository;
+        this.dltRepository = dltRepository;
         this.clock = clock;
     }
 
     /**
-     * Grava o desfecho de uma falha permanente: analise em FALHOU e evento
-     * marcado como processado, para que a mesma mensagem nao volte a rodar.
+     * Idempotente: a mesma mensagem pode chegar duas vezes na DLT, e registrar
+     * duas falhas para a mesma analise so poluiria o diagnostico.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void registrar(AnaliseSolicitadaV1 evento) {
+    @Transactional
+    public void registrar(AnaliseSolicitadaV1 evento, String topicoOriginal, String excecao,
+                          String mensagemDeErro) {
+        if (dltRepository.existsByEventoId(evento.eventId())) {
+            log.info("evento {} ja registrado na DLT, ignorando", evento.eventId());
+            return;
+        }
+
+        dltRepository.save(EventoEmDlt.de(evento.eventId(), evento.analiseId(),
+                topicoOriginal == null ? "desconhecido" : topicoOriginal,
+                excecao, mensagemDeErro, clock.instant()));
+
         marcarAnaliseComoFalha(evento.analiseId());
 
+        // O evento tambem entra em evento_processado: se a mesma mensagem
+        // voltar ao topico principal, o consumidor a ignora em vez de tentar
+        // processar uma analise ja encerrada.
         if (!eventoRepository.existsById(evento.eventId())) {
             eventoRepository.save(EventoProcessado.de(
                     evento.eventId(), ExecucaoDaAnalise.NOME_DO_CONSUMIDOR, clock.instant()));
