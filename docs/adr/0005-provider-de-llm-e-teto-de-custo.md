@@ -9,7 +9,7 @@
 ## Proposta
 
 - **Provider:** Anthropic Claude API, atras da interface `AiProvider`
-  (CLAUDE.md secao 5).
+  (CONTRIBUTING.md secao 5).
 - **Modelo:** Haiku 4.5 para recomendacoes (explicar resultado ja calculado);
   Sonnet 5 para o copilot da Slice 7, se ele existir.
 - **Custo por analise** (entrada ~4.000 tokens, saida ~1.200): ~US$ 0,010 no

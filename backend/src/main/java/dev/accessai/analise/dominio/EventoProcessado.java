@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Marca de idempotencia do consumidor (CLAUDE.md secao 5).
+ * Marca de idempotencia do consumidor (CONTRIBUTING.md secao 5).
  *
  * <p>A chave e o {@code eventId} do evento Kafka. Reprocessar a mesma mensagem
  * colide na primary key, e o consumidor trata a colisao como "ja processado"

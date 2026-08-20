@@ -7,7 +7,7 @@ import java.util.UUID;
  * Evento publicado quando um documento e aceito para analise.
  *
  * <p>Record imutavel e versionado, com {@code eventId}, {@code correlationId} e
- * {@code occurredAt} obrigatorios (CLAUDE.md secao 5). O sufixo V1 esta no nome
+ * {@code occurredAt} obrigatorios (CONTRIBUTING.md secao 5). O sufixo V1 esta no nome
  * do tipo e no nome do topico: quebra de contrato vira V2 e topico novo, nunca
  * mudanca silenciosa de formato.
  *

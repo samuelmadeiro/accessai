@@ -55,7 +55,7 @@ COMMENT ON COLUMN problema.criterio_wcag IS
     'com aplicabilidade a documento nao-web resolvida via WCAG2ICT. '
     'Nunca inventado em codigo.';
 
--- Idempotencia do consumidor (CLAUDE.md secao 5). A chave e o eventId do
+-- Idempotencia do consumidor (CONTRIBUTING.md secao 5). A chave e o eventId do
 -- evento Kafka. Reprocessar a mesma mensagem colide na primary key, e o
 -- consumidor trata isso como "ja processado" em vez de duplicar problema.
 -- Retry, DLT e o teste que mata o consumidor no meio sao da Slice 3; aqui

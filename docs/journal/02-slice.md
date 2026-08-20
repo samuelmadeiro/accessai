@@ -15,7 +15,7 @@ Evoluímos o motor determinístico de 1 para 6 regras de acessibilidade baseadas
 O `ExtratorDeImagens` foi substituído pelo `ExtratorDeDocumento`. Uma única iteração no `ZipInputStream` alimenta todos os coletores, evitando reaberturas repetitivas do arquivo `.docx` e unificando a API para `avaliar(DocumentoExtraido)`.
 
 ### Calculadora de Score (POUR)
-- Adotamos o modelo POUR conforme reescrita do `CLAUDE.md §6` e formalização no **ADR 0009**.
+- Adotamos o modelo POUR conforme reescrita do `CONTRIBUTING.md §6` e formalização no **ADR 0009**.
 - Categorias sem regras aplicadas (como a dimensão *Robusto*) são mapeadas em `naoAvaliados` e excluídas do cálculo global via renormalização dinâmica.
 - Pesos de 25% por categoria externalizados no `application.yml`.
 

@@ -11,7 +11,7 @@ import java.util.UUID;
 /**
  * Representacoes de saida da API.
  *
- * <p>Entidade JPA nunca cruza a fronteira da API (CLAUDE.md secao 5). A
+ * <p>Entidade JPA nunca cruza a fronteira da API (CONTRIBUTING.md secao 5). A
  * conversao mora aqui, na borda, e nao dentro do dominio.
  */
 public final class AnaliseDto {

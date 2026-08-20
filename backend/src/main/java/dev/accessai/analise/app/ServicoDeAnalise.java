@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Orquestra o recebimento de um documento.
  *
- * <p>Servico nao tem SQL e controller nao tem regra de negocio (CLAUDE.md
+ * <p>Servico nao tem SQL e controller nao tem regra de negocio (CONTRIBUTING.md
  * secao 5). O que este servico decide: se o conteudo e aceitavel, qual o
  * correlationId da jornada e quando o evento pode ser publicado.
  */
@@ -85,7 +85,7 @@ public class ServicoDeAnalise {
 
     /**
      * Le a analise e ja a converte para {@link VisaoDaAnalise}, ainda dentro da
-     * transacao. Nenhuma entidade sai deste metodo (CLAUDE.md secao 5).
+     * transacao. Nenhuma entidade sai deste metodo (CONTRIBUTING.md secao 5).
      *
      * <p>O score e calculado aqui, na leitura, e nao gravado no banco: ele e
      * funcao pura dos problemas persistidos mais a configuracao de pesos.

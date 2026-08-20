@@ -12,7 +12,7 @@ import java.util.UUID;
 /**
  * Documento recebido para analise.
  *
- * <p>Entidade JPA nunca cruza a fronteira da API nem do Kafka (CLAUDE.md secao
+ * <p>Entidade JPA nunca cruza a fronteira da API nem do Kafka (CONTRIBUTING.md secao
  * 5). Quem sai daqui e sempre um record de DTO ou de evento.
  */
 @Entity

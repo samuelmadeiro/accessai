@@ -7,7 +7,7 @@
 
 A WCAG foi escrita para conteudo web. Citar 1.1.1 num `.docx` sem justificativa e
 analogia - e analogia nao documentada e exatamente o "inventar criterio" que
-CLAUDE.md secao 6 proibe.
+CONTRIBUTING.md secao 6 proibe.
 
 ## Decisao
 

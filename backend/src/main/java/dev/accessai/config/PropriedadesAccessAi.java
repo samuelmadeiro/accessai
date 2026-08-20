@@ -5,7 +5,7 @@ import org.springframework.util.unit.DataSize;
 
 /**
  * Configuracao da aplicacao. Existe para que nao haja numero magico espalhado
- * pelo codigo (CLAUDE.md secao 5): limite de upload, nome de topico, particoes e
+ * pelo codigo (CONTRIBUTING.md secao 5): limite de upload, nome de topico, particoes e
  * os numeros do score sao decisoes de operacao, nao constantes de classe.
  */
 @ConfigurationProperties(prefix = "accessai")

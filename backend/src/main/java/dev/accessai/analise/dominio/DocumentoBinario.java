@@ -13,7 +13,7 @@ import java.util.UUID;
  * na mesma tabela faria toda consulta carregar megabytes sem necessidade.
  *
  * <p>Limite conhecido: quando o ML Service entrar (Slice 5) ele nao pode ler
- * este banco (CLAUDE.md secao 5). Nesse momento isto vira armazenamento de
+ * este banco (CONTRIBUTING.md secao 5). Nesse momento isto vira armazenamento de
  * objeto e o evento passa a carregar a referencia externa.
  */
 @Entity

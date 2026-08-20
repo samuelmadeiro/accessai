@@ -17,7 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * Borda HTTP.
  *
- * <p>Controller nao tem regra de negocio (CLAUDE.md secao 5): aqui so acontece
+ * <p>Controller nao tem regra de negocio (CONTRIBUTING.md secao 5): aqui so acontece
  * traducao entre HTTP e o servico. Nem validacao de conteudo, que e decisao de
  * dominio e mora no validador.
  */

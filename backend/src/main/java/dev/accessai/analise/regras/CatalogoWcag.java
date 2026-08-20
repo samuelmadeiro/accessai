@@ -16,7 +16,7 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Tabela de criterios WCAG carregada de {@code docs/wcag/criteria.json}.
  *
- * <p>Nenhuma regra escreve criterio, nivel ou numeracao em codigo (CLAUDE.md
+ * <p>Nenhuma regra escreve criterio, nivel ou numeracao em codigo (CONTRIBUTING.md
  * secao 6). A regra declara o identificador; nivel e titulo vem daqui. Se a
  * regra citar um criterio que nao existe na tabela, a aplicacao nao sobe — erro
  * de digitacao em criterio nao pode virar relatorio publicado.
@@ -115,7 +115,7 @@ public class CatalogoWcag {
 
         /**
          * WCAG2ICT pode marcar um criterio como inaplicavel a documento nao-web.
-         * Nesse caso o achado e recomendacao, nunca violacao (CLAUDE.md secao 6).
+         * Nesse caso o achado e recomendacao, nunca violacao (CONTRIBUTING.md secao 6).
          */
         public boolean geraViolacao() {
             return !"inaplicavel".equals(aplicabilidadeIct);

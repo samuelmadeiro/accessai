@@ -83,7 +83,8 @@ que "é moderno".
 
 ## 4. Decisões que ainda NÃO estão tomadas
 
-Estas bloqueiam a implementação. Resolvidas na Fase 0 (ver `PROMPT-FASE-0.md`).
+Estas bloqueiam a implementação. Resolvidas na Fase 0 — o resultado está em
+`docs/architecture/fase-0.md` e nos ADRs de `docs/adr/`.
 
 - **D1 — Formato de documento suportado no MVP.** HTML, PDF ou DOCX. Muda tudo:
   parser, regras, dataset, dificuldade. Escolher exatamente um.

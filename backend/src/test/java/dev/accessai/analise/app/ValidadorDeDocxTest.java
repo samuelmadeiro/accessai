@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Testes do validador de upload.
  *
- * <p>Arquivo enviado por usuario e hostil (CLAUDE.md secao 5). Os limites contra
+ * <p>Arquivo enviado por usuario e hostil (CONTRIBUTING.md secao 5). Os limites contra
  * zip bomb existiam sem nenhum teste — ou seja, existiam no papel.
  */
 @DisplayName("ValidadorDeDocx")

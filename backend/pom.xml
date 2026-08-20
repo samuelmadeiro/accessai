@@ -116,7 +116,7 @@
       </resource>
       <!--
         A tabela WCAG e versionada em docs/wcag/, fora do modulo, porque ela
-        nao pertence ao backend: e o contrato do projeto (CLAUDE.md secao 6).
+        nao pertence ao backend: e o contrato do projeto (CONTRIBUTING.md secao 6).
         Copiar em vez de duplicar mantem uma unica fonte de verdade.
       -->
       <resource>

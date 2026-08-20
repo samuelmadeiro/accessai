@@ -1,6 +1,6 @@
 # Slice 1 — upload → Kafka → uma regra → Postgres → `GET /analyses/{id}`
 
-> **RASCUNHO.** O `CLAUDE.md` §1 diz que esta entrada sou eu quem escreve, com
+> **RASCUNHO.** O `CONTRIBUTING.md` §1 diz que esta entrada sou eu quem escreve, com
 > minhas palavras — o registro abaixo é factual, montado a partir do que ficou
 > no repositório, para eu não ter que reconstruir de memória. As três perguntas
 > do contrato (o quê, por quê, o que foi descartado) estão marcadas

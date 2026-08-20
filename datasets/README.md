@@ -41,7 +41,7 @@ redistribuível.
 
 O segundo caso é a razão de o script validar o tipo **real** (assinatura `PK` +
 `[Content_Types].xml` + `word/document.xml`) em vez de confiar na extensão,
-conforme `CLAUDE.md` §5. Status 200 e extensão `.docx` não provam nada.
+conforme `CONTRIBUTING.md` §5. Status 200 e extensão `.docx` não provam nada.
 
 ## O que os 9 documentos mostraram
 

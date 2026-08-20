@@ -3,9 +3,9 @@
 - **Status:** PROPOSTA - aguarda decisao de Samuel (perguntas 3, 4 e 7 de `fase-0.md`)
 - **Decisao original:** D2 de `docs/architecture/fase-0.md`
 
-> Registrado como proposta, e nao como decisao aceita, porque `PROMPT-FASE-0.md`
-> proibe ADR de decisao ainda nao tomada. Vira `aceita` quando as perguntas
-> abertas forem respondidas.
+> Registrado como proposta, e nao como decisao aceita: nao se escreve ADR para
+> decisao que ainda nao foi tomada. Vira `aceita` quando as perguntas abertas
+> forem respondidas.
 
 ## Contexto
 
@@ -20,7 +20,7 @@ como real destroi a credibilidade do projeto numa entrevista.
    mesma heuristica que o modelo deveria superar - circular por construcao.
 2. **Manter o Modelo 1 (qualidade de texto alternativo)**, com tres classes:
    `GOOD` / `WEAK` / `INSUFFICIENT`. `MISSING` nao e classe: alt ausente e
-   deteccao deterministica, e usar ML nisso violaria CLAUDE.md secao 2.
+   deteccao deterministica, e usar ML nisso violaria CONTRIBUTING.md secao 2.
 3. **Fonte:** `alt` de HTML publico real (Common Crawl e/ou Wikimedia Commons).
 4. **Rotulagem hibrida declarada:** LLM pre-rotula, humano revisa; reportar taxa
    de correcao e kappa de Cohen em 150 amostras.

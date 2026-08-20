@@ -5,7 +5,7 @@ Baixa o corpus real de .docx publicos declarado em datasets/sources.json.
 Regras (condicao C-3 de docs/architecture/fase-0.md):
 
   * NAO faz crawling. Baixa exatamente as URLs da lista-semente e nada mais.
-  * Valida o tipo REAL do arquivo, nao a extensao (CLAUDE.md secao 5): tem que
+  * Valida o tipo REAL do arquivo, nao a extensao (CONTRIBUTING.md secao 5): tem que
     ser um zip contendo [Content_Types].xml e word/document.xml.
   * Escreve o manifesto em datasets/corpus/manifest.json — ESTE vai para o git.
   * Escreve os binarios em datasets/corpus/raw/ — ESTE fica no .gitignore.

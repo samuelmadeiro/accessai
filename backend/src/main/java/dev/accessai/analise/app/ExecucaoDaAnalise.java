@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * O trabalho de uma analise, dentro de uma unica transacao.
  *
- * <p>Idempotente por construcao (CLAUDE.md secao 5): o {@code eventId} e gravado
+ * <p>Idempotente por construcao (CONTRIBUTING.md secao 5): o {@code eventId} e gravado
  * em {@code evento_processado}, cuja primary key rejeita a segunda tentativa. A
  * verificacao e a gravacao acontecem na MESMA transacao do processamento, entao
  * nao existe janela entre "marquei como processado" e "processei".

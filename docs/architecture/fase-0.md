@@ -8,12 +8,12 @@ Data: 2026-08-19
 
 ## Parte A — Auditoria
 
-Repositório vazio: contém apenas `CLAUDE.md` e `PROMPT-FASE-0.md`. Sem código,
+Repositório vazio: contém apenas `CONTRIBUTING.md`. Sem código,
 sem `pom.xml`, sem migrations, sem testes, sem git inicializado. Nada a
 reaproveitar, nada a deletar.
 
 Única verificação feita contra a realidade externa: Spring Boot 4.1.0 é GA
-desde 10/06/2026 e Java 25 é LTS. A stack de §3 do `CLAUDE.md` é válida.
+desde 10/06/2026 e Java 25 é LTS. A stack de §3 do `CONTRIBUTING.md` é válida.
 
 ---
 
@@ -130,7 +130,7 @@ classes: `GOOD` / `WEAK` / `INSUFFICIENT`.
 
 **`MISSING` não é classe deste modelo.** Alt ausente é detecção determinística
 — é a regra da Slice 1. Colocá-la no classificador seria usar ML onde uma regra
-resolve, o que §2 do `CLAUDE.md` proíbe. O modelo só é invocado quando existe
+resolve, o que §2 do `CONTRIBUTING.md` proíbe. O modelo só é invocado quando existe
 texto alternativo para julgar.
 
 - **Fonte dos exemplos:** atributos `alt` extraídos de HTML público real
@@ -309,7 +309,7 @@ D1 aprovado: **DOCX**. Três condições, todas bloqueantes para a Parte C.
 
 **O buraco:** a WCAG foi escrita para conteúdo web. Aplicar 1.1.1 ou 2.4.6 a um
 `.docx` é analogia. Analogia não documentada é exatamente o "inventar critério"
-que §6 do `CLAUDE.md` proíbe — e eu estava fazendo isso citando WCAG2ICT de
+que §6 do `CONTRIBUTING.md` proíbe — e eu estava fazendo isso citando WCAG2ICT de
 passagem, como nota de rodapé, em vez de tratá-lo como a régua.
 
 **A régua correta** (verificada, não citada de memória):

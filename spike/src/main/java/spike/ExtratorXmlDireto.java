@@ -31,7 +31,7 @@ public final class ExtratorXmlDireto implements ExtratorAltText {
     private final XMLInputFactory factory = criarFactorySegura();
 
     /**
-     * Arquivo enviado por usuario e hostil (CLAUDE.md secao 5): DTD e entidades
+     * Arquivo enviado por usuario e hostil (CONTRIBUTING.md secao 5): DTD e entidades
      * externas desligadas para fechar XXE e billion-laughs.
      */
     private static XMLInputFactory criarFactorySegura() {

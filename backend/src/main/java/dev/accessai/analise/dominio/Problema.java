@@ -15,7 +15,7 @@ import java.util.UUID;
  * <p>{@code criterioWcag} e sempre um identificador vindo da tabela versionada
  * {@code docs/wcag/criteria.json}, com aplicabilidade a documento nao-web
  * resolvida via WCAG2ICT. Nenhuma regra inventa criterio, nivel ou numeracao
- * (CLAUDE.md secao 6).
+ * (CONTRIBUTING.md secao 6).
  */
 @Entity
 @Table(name = "problema")

@@ -62,7 +62,7 @@ public class MotorDeRegras {
             if (!criterio.geraViolacao()) {
                 // WCAG2ICT marcou o criterio como inaplicavel a documento
                 // nao-web: vira recomendacao, e recomendacao nao e problema
-                // (CLAUDE.md secao 6). Recomendacao entra na Slice 6.
+                // (CONTRIBUTING.md secao 6). Recomendacao entra na Slice 6.
                 log.debug("regra {} ignorada: criterio {} e inaplicavel a documento nao-web",
                         regra.id(), criterio.id());
                 continue;

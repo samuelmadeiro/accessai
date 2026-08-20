@@ -3,7 +3,7 @@
 #
 # ATENCAO ao contexto: este Dockerfile e construido a partir da RAIZ do
 # repositorio, nao de backend/. O motivo e docs/wcag/criteria.json, que o
-# pom.xml inclui como resource. A tabela WCAG e contrato do projeto (CLAUDE.md
+# pom.xml inclui como resource. A tabela WCAG e contrato do projeto (CONTRIBUTING.md
 # secao 6) e vive fora do modulo de proposito; copiar uma segunda copia para
 # dentro de backend/ criaria duas fontes de verdade que divergem sozinhas.
 

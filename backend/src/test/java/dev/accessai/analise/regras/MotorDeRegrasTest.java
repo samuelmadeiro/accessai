@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Testes do motor de regras.
  *
- * <p>O que este teste protege e a invariante de CLAUDE.md secao 6: nivel WCAG
+ * <p>O que este teste protege e a invariante de CONTRIBUTING.md secao 6: nivel WCAG
  * vem da tabela, nunca da regra, e criterio inexistente derruba a aplicacao em
  * vez de virar relatorio publicado.
  */

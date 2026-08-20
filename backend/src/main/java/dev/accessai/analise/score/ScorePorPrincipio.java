@@ -6,7 +6,7 @@ import dev.accessai.analise.dominio.PrincipioWcag;
  * Nota de um principio WCAG, com o caminho inteiro ate ela.
  *
  * <p>Os campos intermediarios (penalidade, problemas, peso) existem porque
- * CLAUDE.md secao 6 exige que cada ponto perdido rastreie ate um problema
+ * CONTRIBUTING.md secao 6 exige que cada ponto perdido rastreie ate um problema
  * especifico. Devolver so a nota faria o score virar numero de oraculo — o
  * mesmo defeito de um score predito por ML, que a secao 6 proibe.
  *

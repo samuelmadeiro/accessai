@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 /**
  * Decide se o que chegou no upload e mesmo um DOCX.
  *
- * <p>Arquivo enviado por usuario e hostil (CLAUDE.md secao 5). Tres coisas NAO
+ * <p>Arquivo enviado por usuario e hostil (CONTRIBUTING.md secao 5). Tres coisas NAO
  * sao prova de nada e por isso nao sao consultadas aqui: a extensao do nome, o
  * cabecalho {@code Content-Type} da requisicao e o status HTTP de onde o
  * arquivo veio. A coleta do corpus real provou o ponto: duas URLs terminadas em

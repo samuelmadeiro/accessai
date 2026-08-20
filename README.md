@@ -8,7 +8,7 @@ para critérios WCAG, com evidência rastreável até o ponto exato do documento
 ## Estado atual: Slice 2 de 9
 
 Este README descreve **o que existe e roda hoje**, não o que está planejado.
-O projeto é construído em fatias verticais finas (`CLAUDE.md` §7), uma por vez.
+O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma por vez.
 
 | Slice | Entrega | Estado |
 |---|---|---|
@@ -23,7 +23,7 @@ O projeto é construído em fatias verticais finas (`CLAUDE.md` §7), uma por ve
 **Não existe ML nem IA neste repositório ainda.** Não há `ml-service/`, não há
 modelo treinado, não há chamada a LLM. Tudo aqui é determinístico: seis regras
 que leem XML. Quando ML e IA entrarem, entram como camadas de interpretação
-sobre o Rule Engine — nunca como substituto dele (`CLAUDE.md` §2).
+sobre o Rule Engine — nunca como substituto dele (`CONTRIBUTING.md` §2).
 
 ### As seis regras implementadas
 
@@ -191,7 +191,7 @@ Use `docker compose down -v` para apagar também os volumes.
 ./mvnw verify
 ```
 
-O wrapper e o POM agregador da raiz existem só para isso: `CLAUDE.md` §9 manda
+O wrapper e o POM agregador da raiz existem só para isso: `CONTRIBUTING.md` §9 manda
 rodar da raiz. O `backend/` continua sendo um módulo independente
 (`cd backend && ./mvnw verify` faz o mesmo).
 
@@ -409,7 +409,7 @@ descuido:
 - **Sem autenticação e sem isolamento por usuário.** A migration que trouxer
   autenticação adiciona `owner_id` e o teste que prova o isolamento.
 - **Binário em `bytea` no banco principal** não sobrevive à Slice 5, quando o
-  ML Service for outro processo — ele não pode ler este banco (`CLAUDE.md` §5).
+  ML Service for outro processo — ele não pode ler este banco (`CONTRIBUTING.md` §5).
 - **Seis regras.** O corpus real mostrou 4 imagens em 9 documentos, todas sem
   alt utilizável. Amostra pequena para conclusão forte sobre qualquer regra.
 - **Os pacotes de teste são sintéticos.** Montados em memória, modelados no que

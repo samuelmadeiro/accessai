@@ -6,7 +6,7 @@ import javax.xml.stream.XMLStreamReader;
  * Um pedaco de informacao extraida do pacote.
  *
  * <p>Coletor nao decide se algo e problema: ele so descreve o que o documento
- * tem. Quem julga sao as regras (CLAUDE.md secao 2). A separacao importa porque
+ * tem. Quem julga sao as regras (CONTRIBUTING.md secao 2). A separacao importa porque
  * a mesma tabela alimenta a regra de linha de cabecalho hoje e a de resumo de
  * tabela amanha, sem reabrir o pacote.
  *

@@ -13,7 +13,7 @@ import java.util.UUID;
  *
  * <p>Record imutavel, sem nenhuma referencia a entidade JPA. A versao anterior
  * carregava a propria {@code Analise} e a lista de {@code Problema} ate a
- * camada de API, o que quebrava a invariante de CLAUDE.md secao 5 mesmo sem
+ * camada de API, o que quebrava a invariante de CONTRIBUTING.md secao 5 mesmo sem
  * serializar a entidade: bastava alguem chamar um getter fora da transacao para
  * transformar um detalhe de mapeamento em bug de API.
  *

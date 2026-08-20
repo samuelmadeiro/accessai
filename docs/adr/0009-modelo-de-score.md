@@ -1,11 +1,11 @@
 # ADR 0009 - Score por principio WCAG, com categoria vazia fora da media
 
 - **Status:** aceita (aprovada por Samuel na Slice 2)
-- **Substitui:** o modelo de cinco categorias do CLAUDE.md secao 6 original
+- **Substitui:** o modelo de cinco categorias do CONTRIBUTING.md secao 6 original
 
 ## Contexto
 
-CLAUDE.md secao 6 fixava `Structure 25% | Content 25% | Visual 20% |
+CONTRIBUTING.md secao 6 fixava `Structure 25% | Content 25% | Visual 20% |
 Semantic 20% | Metadata 10%`. Ao implementar as seis regras da Slice 2, dois
 problemas apareceram:
 
@@ -49,7 +49,7 @@ criterio: 1.x Perceptivel, 2.x Operavel, 3.x Compreensivel, 4.x Robusto.
 
 **Boas.** Regra nova cai na categoria certa sozinha. A resposta carrega
 penalidade, contagem e peso por categoria, entao cada ponto perdido rastreia ate
-os problemas que o causaram (CLAUDE.md secao 6). Robusto aparece hoje como nao
+os problemas que o causaram (CONTRIBUTING.md secao 6). Robusto aparece hoje como nao
 avaliado, o que e verdade e esta dito.
 
 **Ruins.** Mudar um peso muda a nota de analises antigas, porque nada foi

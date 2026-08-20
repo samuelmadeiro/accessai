@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  *
  * <ul>
  *   <li><b>Nao prediz nada.</b> O score e soma ponderada de penalidades
- *       deterministicas (CLAUDE.md secao 6). ML pode ajustar a severidade de um
+ *       deterministicas (CONTRIBUTING.md secao 6). ML pode ajustar a severidade de um
  *       problema no futuro; nunca a nota.</li>
  *   <li><b>Nao guarda estado.</b> O score e funcao pura dos problemas
  *       persistidos mais a configuracao, calculada na leitura. Grava-lo criaria

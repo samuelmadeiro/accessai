@@ -8,7 +8,7 @@ import java.util.List;
  *
  * <p>A regra declara apenas o identificador do criterio WCAG. Nivel e titulo
  * sao resolvidos pelo {@link CatalogoWcag} — assim uma regra nao consegue
- * inventar nivel (CLAUDE.md secao 6).
+ * inventar nivel (CONTRIBUTING.md secao 6).
  *
  * <p>Recebe o {@link DocumentoExtraido} inteiro, e nao a lista do que lhe
  * interessa. Com uma regra so, passar {@code List&lt;ImagemDoDocumento&gt;} era

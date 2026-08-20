@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  POM agregador da raiz. Existe por um motivo pratico: CLAUDE.md secao 9 manda
+  POM agregador da raiz. Existe por um motivo pratico: CONTRIBUTING.md secao 9 manda
   rodar `./mvnw test` e `./mvnw verify` da raiz, e wrapper sem POM ao lado nao
   tem o que construir.
 
@@ -8,7 +8,7 @@
   Este aqui so agrega, para nao criar uma segunda fonte de verdade para versao
   de dependencia.
 
-  O `spike` fica DE FORA de proposito. E projeto descartavel (CLAUDE.md secao
+  O `spike` fica DE FORA de proposito. E projeto descartavel (CONTRIBUTING.md secao
   10), com JUnit e ciclo de vida proprios; agrega-lo faria todo build da raiz
   compilar codigo que existe para ser jogado fora. Ele roda sozinho:
   `cd spike && mvn test`.
