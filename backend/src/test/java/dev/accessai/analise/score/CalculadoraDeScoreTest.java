@@ -218,7 +218,7 @@ class CalculadoraDeScoreTest {
                         new PropriedadesAccessAi.Score.Pesos(perceptivel, operavel, compreensivel,
                                 robusto),
                         new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
-                new PropriedadesAccessAi.Outbox(500, 50, 5_000));
+                new PropriedadesAccessAi.Outbox(500, 50, 2_000, 10_000, 10));
         return new CalculadoraDeScore(propriedades);
     }
 }

@@ -64,6 +64,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @DisplayName("Slice 3: outbox, retry, DLT e correlacao")
 class ResilienciaDoPipelineIT {
 
+    private static final String TOPICO = "accessai.analise.solicitada.v1";
     private static final Duration LIMITE = Duration.ofSeconds(60);
     private static final Duration SONDAGEM = Duration.ofMillis(250);
 
@@ -81,6 +82,11 @@ class ResilienciaDoPipelineIT {
         registro.add("accessai.kafka.retry.tentativas", () -> 3);
         registro.add("accessai.kafka.retry.intervalo-inicial-ms", () -> 200);
         registro.add("accessai.kafka.retry.intervalo-maximo-ms", () -> 1000);
+        // Uma particao so. O teste da mensagem ilegivel depende disso: com tres
+        // particoes, o lixo e o documento seguinte cairiam em particoes
+        // diferentes e o documento passaria mesmo com o consumidor travado na
+        // outra — o teste ficaria verde sem provar nada.
+        registro.add("accessai.kafka.particoes", () -> 1);
     }
 
     @LocalServerPort
@@ -180,7 +186,7 @@ class ResilienciaDoPipelineIT {
                         .as("guardar o wrapper do Spring Kafka nao diria nada: "
                                 + "o que importa e a causa")
                         .isEqualTo("dev.accessai.analise.extracao.ParteIlegivelException");
-                assertThat(registro.getTopicoOrigem()).isEqualTo("accessai.analise.solicitada.v1");
+                assertThat(registro.getTopicoOrigem()).isEqualTo(TOPICO);
             });
         });
 
@@ -212,6 +218,25 @@ class ResilienciaDoPipelineIT {
                 assertThat(problemaRepository.findByAnaliseIdOrderByCriadoEmAsc(analiseId))
                         .as("a chave de deduplicacao e o eventId")
                         .hasSize(problemasAntes));
+    }
+
+    @Test
+    @DisplayName("mensagem que nao desserializa nao trava o consumidor")
+    void mensagemIlegivelNaoTravaOConsumidor() {
+        // Bytes que nunca virao um AnaliseSolicitadaV1. A falha acontece DENTRO
+        // do poll(), antes de existir registro para o DefaultErrorHandler tratar.
+        kafkaDeBytes.send(new ProducerRecord<>(TOPICO, UUID.randomUUID().toString(),
+                "isto nao e json".getBytes(StandardCharsets.UTF_8)));
+
+        // O que prova o conserto nao e o destino do lixo, e sim que o proximo
+        // documento valido continua sendo processado. Sem o
+        // ErrorHandlingDeserializer o container repolla o mesmo offset para
+        // sempre e este upload nunca sairia de RECEBIDA. E sem uma fabrica de
+        // fim de linha para a DLT, o lixo desviado seria reentregue eternamente
+        // procurando um topico .DLT.DLT que nao existe.
+        UUID analiseId = enviar(documentoAcessivel(), "depois-do-lixo.docx", null);
+
+        aguardarSituacao(analiseId, SituacaoAnalise.CONCLUIDA);
     }
 
     @Test

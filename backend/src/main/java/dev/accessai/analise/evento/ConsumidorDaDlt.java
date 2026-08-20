@@ -18,8 +18,12 @@ import org.springframework.stereotype.Component;
  * API. Aqui a chegada na DLT vira transicao explicita para FALHOU, com a excecao
  * original registrada em {@code evento_em_dlt}.
  *
- * <p>Este consumidor NAO relanca excecao. Se ele falhasse e a mensagem voltasse,
- * a DLT precisaria de uma DLT — e o ciclo nao terminaria nunca.
+ * <p>Este consumidor NAO relanca excecao, e o {@code try/catch} abaixo cobre so
+ * metade disso: falha na CONVERSAO do payload acontece antes do corpo do metodo
+ * e escapa dele. Quem fecha a outra metade e a {@code fabricaDaDlt}, que da a
+ * este listener um tratador de fim de linha — sem ela, uma mensagem que nao
+ * converte seria desviada para {@code ...DLT.DLT}, topico inexistente, e
+ * reentregue para sempre.
  */
 @Component
 public class ConsumidorDaDlt {
@@ -34,7 +38,8 @@ public class ConsumidorDaDlt {
 
     @KafkaListener(
             topics = "${accessai.kafka.topico-analise-solicitada}.DLT",
-            groupId = "${spring.kafka.consumer.group-id}-dlt")
+            groupId = "${spring.kafka.consumer.group-id}-dlt",
+            containerFactory = "fabricaDaDlt")
     public void aoReceber(@Payload AnaliseSolicitadaV1 evento,
                           @Header(name = Correlacao.CABECALHO, required = false)
                           String correlationId,
@@ -46,8 +51,10 @@ public class ConsumidorDaDlt {
                           String causa,
                           @Header(name = KafkaHeaders.DLT_EXCEPTION_MESSAGE, required = false)
                           String mensagemDeErro) {
-        Correlacao.definir(correlationId != null
-                ? correlationId : String.valueOf(evento.correlationId()));
+        // Normalizado como na fronteira HTTP: cabecalho de mensagem tambem e
+        // entrada hostil, e log falsificado e pior que log ausente.
+        Correlacao.definir(Correlacao.normalizar(correlationId != null
+                ? correlationId : String.valueOf(evento.correlationId())));
         // O Spring Kafka poe no cabecalho a excecao de FORA, que e sempre
         // ListenerExecutionFailedException — nome que nao diz nada sobre o que
         // aconteceu. A causa e o que interessa para quem for diagnosticar.

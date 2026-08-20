@@ -35,12 +35,19 @@ public record PropriedadesAccessAi(Upload upload, Kafka kafka, Score score,
      * Publicador do outbox.
      *
      * @param intervaloMs           pausa entre ciclos de leitura da tabela
-     * @param tamanhoDoLote         maximo de eventos por ciclo; limita o tempo que
-     *                              a transacao segura as linhas travadas
+     * @param tamanhoDoLote         maximo de eventos por ciclo
      * @param timeoutDePublicacaoMs quanto esperar a confirmacao do broker antes de
      *                              contar a tentativa como falha
+     * @param orcamentoDoLoteMs     teto de tempo do ciclo inteiro. O tamanho do lote
+     *                              sozinho nao limita a duracao da transacao: com o
+     *                              broker lento, 50 eventos x o timeout de cada um
+     *                              segurariam as linhas travadas por minutos
+     * @param maxTentativas         a partir daqui o evento deixa de ser lido pelo
+     *                              publicador e vira caso de operacao. Sem o teto,
+     *                              linha impublicavel bloqueia a fila para sempre
      */
-    public record Outbox(long intervaloMs, int tamanhoDoLote, long timeoutDePublicacaoMs) {
+    public record Outbox(long intervaloMs, int tamanhoDoLote, long timeoutDePublicacaoMs,
+                         long orcamentoDoLoteMs, int maxTentativas) {
     }
 
     /**

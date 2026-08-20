@@ -37,9 +37,16 @@ spring:
     consumer:
       group-id: accessai-analise
       auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      # ErrorHandlingDeserializer envolve o desserializador de verdade. Sem ele,
+      # JSON invalido no topico explode DENTRO do poll(), antes de existir um
+      # registro para o DefaultErrorHandler tratar: o container repolla o mesmo
+      # offset para sempre e o pipeline inteiro para. Com ele, a falha vira um
+      # cabecalho de excecao no registro e segue o caminho normal de retry/DLT.
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
         # O consumidor decide o tipo; nao aceita o que o produtor mandar no header.
         spring.json.use.type.headers: false
         spring.json.value.default.type: dev.accessai.analise.evento.AnaliseSolicitadaV1
@@ -87,7 +94,15 @@ accessai:
     # indice parcial que so cobre pendentes.
     intervalo-ms: 500
     tamanho-do-lote: 50
-    timeout-de-publicacao-ms: 5000
+    # Timeout por evento e orcamento do lote inteiro. O produto dos dois e o
+    # tempo maximo que a transacao segura as linhas travadas e a conexao do
+    # pool; sem o orcamento, um broker LENTO (nao caido) prenderia 50 x timeout.
+    timeout-de-publicacao-ms: 2000
+    orcamento-do-lote-ms: 10000
+    # Evento que falhou esta quantidade de vezes sai da fila de publicacao. Sem
+    # este teto, uma linha impublicavel em definitivo e retentada para sempre e,
+    # somadas o bastante, elas ocupam o lote inteiro e nenhum evento novo sai.
+    max-tentativas: 10
   score:
     # Peso de cada principio WCAG na nota global. Iguais por padrao: nao ha
     # evidencia publicada para hierarquizar principios, e um 35/30/25/10

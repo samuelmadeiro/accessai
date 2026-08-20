@@ -204,17 +204,25 @@ demonstrar.
 Onze casos ponta a ponta, em duas suítes. **Fluxo** (6): documento que viola
 cinco regras com o score exato conferido, documento acessível que tira 100 sem
 falso positivo, imagem só no cabeçalho, documento que quebra no parsing, conteúdo
-que não é DOCX (`422`) e análise inexistente (`404`). **Resiliência** (5): o
+que não é DOCX (`422`) e análise inexistente (`404`). **Resiliência** (6): o
 outbox marcado como publicado só após a confirmação do broker, falha transitória
 reentregue com backoff até concluir, falha permanente desviada para a DLT com a
 análise em `FALHOU` e a causa registrada, evento duplicado que não duplica
-problema, e o `X-Correlation-ID` do cliente atravessando HTTP, banco e evento.
+problema, mensagem ilegível que não trava o consumidor, e o `X-Correlation-ID`
+do cliente atravessando HTTP, banco e evento.
 
 A falha transitória é forçada com um espião sobre `ExecucaoDaAnalise`: derrubar o
 Postgres no meio do teste produziria a mesma exceção com um teste lento e
 instável.
 
-Além deles, **163 testes unitários** que não precisam de Docker e rodam em
+O teste da mensagem ilegível publica bytes que nunca virão um evento e depois
+envia um documento válido. O que ele afirma não é o destino do lixo, e sim que o
+documento seguinte ainda é processado: sem `ErrorHandlingDeserializer` a falha
+acontece dentro do `poll()` e o container repolla o mesmo offset para sempre. O
+tópico roda com uma partição só nesse cenário — com três, o lixo e o documento
+cairiam em partições diferentes e o teste passaria sem provar nada.
+
+Além deles, **165 testes unitários** que não precisam de Docker e rodam em
 segundos: extrator e os sete coletores, uma suíte por regra (cada uma com o caso
 de conformidade que ela precisa **não** marcar), calculadora de score, catálogo
 WCAG, motor de regras, validador de upload e a política de falha do consumidor.

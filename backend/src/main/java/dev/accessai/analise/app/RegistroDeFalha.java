@@ -22,6 +22,23 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Quem chama e o consumidor da DLT, depois de o retry ter se esgotado. A
  * transicao de estado acontece num lugar so, e nao espalhada por cada ponto que
  * pode lancar excecao.
+ *
+ * <h2>Por que nao ha corrida com o consumidor principal</h2>
+ *
+ * <p>Este consumidor esta num grupo diferente do consumidor do topico principal
+ * ({@code -dlt}), entao os dois rodam ao mesmo tempo e escrevem a MESMA linha de
+ * {@code analise}. {@code Analise} nao tem {@code @Version}, e as verificacoes
+ * de {@code existsById} e {@code ehTerminal()} aqui e em {@link ExecucaoDaAnalise}
+ * sao check-then-act: sozinhas, nao impedem nada.
+ *
+ * <p>Quem garante a exclusao mutua e a PRIMARY KEY de {@code evento_processado}.
+ * Os dois caminhos gravam o mesmo {@code eventId} nessa tabela antes de commitar;
+ * o Postgres bloqueia o segundo no indice unico e ele termina em violacao de
+ * chave, com rollback de tudo que tinha feito — inclusive da transicao de estado.
+ *
+ * <p>Isto e o que sustenta a idempotencia do pipeline inteiro. Trocar essa PK
+ * por um id sintetico, ou transformar a gravacao num upsert, remove a garantia
+ * sem quebrar nenhum teste de caminho feliz.
  */
 @Component
 public class RegistroDeFalha {

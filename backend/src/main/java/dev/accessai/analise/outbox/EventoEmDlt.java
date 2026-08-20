@@ -87,12 +87,4 @@ public class EventoEmDlt {
     public String getExcecao() {
         return excecao;
     }
-
-    public String getMensagemErro() {
-        return mensagemErro;
-    }
-
-    public Instant getRecebidoEm() {
-        return recebidoEm;
-    }
 }

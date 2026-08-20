@@ -40,6 +40,8 @@ class PublicadorDeOutboxTest {
 
     private static final Instant AGORA = Instant.parse("2026-08-20T10:00:00Z");
     private static final String TOPICO = "accessai.analise.solicitada.v1";
+    private static final int MAX_TENTATIVAS = 10;
+    private static final long ORCAMENTO_MS = 10_000;
 
     @Mock
     private EventoDeOutboxRepository repositorio;
@@ -58,7 +60,7 @@ class PublicadorDeOutboxTest {
                 new PropriedadesAccessAi.Score(
                         new PropriedadesAccessAi.Score.Pesos(25, 25, 25, 25),
                         new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
-                new PropriedadesAccessAi.Outbox(500, 50, 5_000));
+                new PropriedadesAccessAi.Outbox(500, 50, 2_000, ORCAMENTO_MS, MAX_TENTATIVAS));
         publicador = new PublicadorDeOutbox(repositorio, kafkaTemplate, propriedades,
                 Clock.fixed(AGORA, ZoneOffset.UTC));
     }
@@ -67,7 +69,7 @@ class PublicadorDeOutboxTest {
     @DisplayName("evento pendente e publicado e marcado com a hora do relogio")
     void publicaEMarca() {
         EventoDeOutbox evento = pendente();
-        when(repositorio.pegarPendentes(50)).thenReturn(List.of(evento));
+        when(repositorio.pegarPendentes(50, MAX_TENTATIVAS)).thenReturn(List.of(evento));
         when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(envioConfirmado());
 
         publicador.publicarPendentes();
@@ -81,7 +83,7 @@ class PublicadorDeOutboxTest {
     @DisplayName("o payload vai como bytes, sem reserializar, e com a chave do agregado")
     void payloadIntacto() {
         EventoDeOutbox evento = pendente();
-        when(repositorio.pegarPendentes(50)).thenReturn(List.of(evento));
+        when(repositorio.pegarPendentes(50, MAX_TENTATIVAS)).thenReturn(List.of(evento));
         when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(envioConfirmado());
 
         publicador.publicarPendentes();
@@ -102,7 +104,7 @@ class PublicadorDeOutboxTest {
     @DisplayName("falha ao publicar conta tentativa e NAO marca como publicado")
     void falhaNaoMarca() {
         EventoDeOutbox evento = pendente();
-        when(repositorio.pegarPendentes(50)).thenReturn(List.of(evento));
+        when(repositorio.pegarPendentes(50, MAX_TENTATIVAS)).thenReturn(List.of(evento));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenReturn(CompletableFuture.failedFuture(
                         new IllegalStateException("broker indisponivel")));
@@ -121,7 +123,7 @@ class PublicadorDeOutboxTest {
     void loteContinuaAposFalha() {
         EventoDeOutbox quebrado = pendente();
         EventoDeOutbox bom = pendente();
-        when(repositorio.pegarPendentes(50)).thenReturn(List.of(quebrado, bom));
+        when(repositorio.pegarPendentes(50, MAX_TENTATIVAS)).thenReturn(List.of(quebrado, bom));
         when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("falhou")))
                 .thenReturn(envioConfirmado());
@@ -135,11 +137,57 @@ class PublicadorDeOutboxTest {
     @Test
     @DisplayName("sem pendentes, nao toca no broker")
     void semPendentes() {
-        when(repositorio.pegarPendentes(50)).thenReturn(List.of());
+        when(repositorio.pegarPendentes(50, MAX_TENTATIVAS)).thenReturn(List.of());
 
         publicador.publicarPendentes();
 
         verify(kafkaTemplate, never()).send(any(ProducerRecord.class));
+    }
+
+    @Test
+    @DisplayName("o teto de tentativas vai para a consulta: linha desistida sai da fila")
+    void consultaLevaOTetoDeTentativas() {
+        when(repositorio.pegarPendentes(50, MAX_TENTATIVAS)).thenReturn(List.of());
+
+        publicador.publicarPendentes();
+
+        // Sem este filtro, um evento impublicavel em definitivo e relido a cada
+        // ciclo e, somados o bastante, eles ocupam o lote inteiro para sempre.
+        verify(repositorio).pegarPendentes(50, MAX_TENTATIVAS);
+    }
+
+    @Test
+    @DisplayName("orcamento esgotado interrompe o ciclo e deixa o resto para o proximo")
+    void orcamentoInterrompeOLote() {
+        PublicadorDeOutbox semOrcamento = comOrcamentoDe(0);
+        EventoDeOutbox primeiro = pendente();
+        EventoDeOutbox segundo = pendente();
+        when(repositorio.pegarPendentes(50, MAX_TENTATIVAS))
+                .thenReturn(List.of(primeiro, segundo));
+        when(kafkaTemplate.send(any(ProducerRecord.class))).thenReturn(envioConfirmado());
+
+        semOrcamento.publicarPendentes();
+
+        // O primeiro sai mesmo com orcamento zerado: um ciclo que nao publica
+        // nada nunca esvaziaria a fila. O segundo fica pendente, nao perdido.
+        assertThat(primeiro.foiPublicado()).isTrue();
+        assertThat(segundo.foiPublicado()).isFalse();
+        assertThat(segundo.getTentativas())
+                .as("adiar por orcamento nao e falha de publicacao")
+                .isZero();
+    }
+
+    private PublicadorDeOutbox comOrcamentoDe(long orcamentoMs) {
+        PropriedadesAccessAi propriedades = new PropriedadesAccessAi(
+                new PropriedadesAccessAi.Upload(DataSize.ofMegabytes(25)),
+                new PropriedadesAccessAi.Kafka(TOPICO, 3, (short) 1,
+                        new PropriedadesAccessAi.Kafka.Retry(4, 500, 2.0, 10_000)),
+                new PropriedadesAccessAi.Score(
+                        new PropriedadesAccessAi.Score.Pesos(25, 25, 25, 25),
+                        new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
+                new PropriedadesAccessAi.Outbox(500, 50, 2_000, orcamentoMs, MAX_TENTATIVAS));
+        return new PublicadorDeOutbox(repositorio, kafkaTemplate, propriedades,
+                Clock.fixed(AGORA, ZoneOffset.UTC));
     }
 
     private static EventoDeOutbox pendente() {

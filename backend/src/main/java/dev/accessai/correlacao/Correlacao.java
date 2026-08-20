@@ -47,10 +47,20 @@ public final class Correlacao {
     /**
      * O id da jornada atual. Gera um novo quando nao ha nenhum: caminho que nao
      * passou por HTTP (um teste, um job) continua rastreavel.
+     *
+     * <p>O id gerado e GRAVADO no MDC. Devolve-lo sem gravar fazia duas chamadas
+     * seguidas responderem coisas diferentes, e o valor que ia para o banco nao
+     * aparecia em nenhuma linha de log — justamente a rastreabilidade que esta
+     * classe existe para dar, ausente no unico caso em que ela e gerada aqui.
      */
     public static String atual() {
         String atual = MDC.get(CHAVE_MDC);
-        return atual != null ? atual : UUID.randomUUID().toString();
+        if (atual != null) {
+            return atual;
+        }
+        String novo = UUID.randomUUID().toString();
+        definir(novo);
+        return novo;
     }
 
     /**

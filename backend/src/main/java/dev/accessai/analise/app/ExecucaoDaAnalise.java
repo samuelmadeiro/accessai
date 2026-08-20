@@ -29,11 +29,13 @@ import org.springframework.transaction.annotation.Transactional;
  * verificacao e a gravacao acontecem na MESMA transacao do processamento, entao
  * nao existe janela entre "marquei como processado" e "processei".
  *
- * <p>Esta classe so conhece o caminho feliz. Quem decide o que fazer quando ela
- * lanca e {@link ProcessadorDeAnalise} — e ele precisa de OUTRA transacao para
- * gravar a falha, porque esta aqui ja esta condenada ao rollback. Por isso o
- * tratamento de erro nao mora neste arquivo: {@code @Transactional} em metodo
- * chamado de dentro da propria classe nao passa pelo proxy do Spring.
+ * <p>Esta classe so conhece o caminho feliz, e lanca de proposito. Quem decide
+ * retry, backoff e desvio e o {@code DefaultErrorHandler} configurado em
+ * {@code KafkaConfig}; esgotadas as tentativas, a mensagem chega na DLT e
+ * {@link RegistroDeFalha} marca a analise como FALHOU. O registro da falha
+ * precisa mesmo de OUTRA transacao, porque esta aqui ja esta condenada ao
+ * rollback — e {@code @Transactional} em metodo chamado de dentro da propria
+ * classe nao passa pelo proxy do Spring.
  */
 @Component
 public class ExecucaoDaAnalise {

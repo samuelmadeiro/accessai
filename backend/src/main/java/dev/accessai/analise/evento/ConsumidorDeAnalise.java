@@ -19,10 +19,15 @@ import org.springframework.stereotype.Component;
  * entrega e assunto da infraestrutura de mensageria, nao de um try/catch
  * espalhado no consumidor.
  *
- * <p>O correlationId vem do CABECALHO da mensagem, nao do corpo: assim o MDC ja
- * esta preenchido mesmo quando a desserializacao do payload falha, que e
- * justamente quando o log importa. O corpo continua carregando o id como
- * segunda fonte, para mensagem antiga publicada antes desta slice.
+ * <p>O correlationId vem do CABECALHO da mensagem, e nao do corpo, para estar
+ * disponivel antes de qualquer leitura do payload. O corpo continua carregando
+ * o id como segunda fonte, para mensagem antiga publicada antes desta slice.
+ *
+ * <p>O valor passa por {@code normalizar} antes de entrar no MDC. Quem consegue
+ * produzir neste topico nao e necessariamente este servico, e cabecalho de
+ * mensagem e entrada hostil como qualquer outra (CONTRIBUTING.md secao 5): um
+ * valor com quebra de linha injetaria linhas falsas no log. A fronteira HTTP ja
+ * fazia isso; a fronteira Kafka nao fazia.
  */
 @Component
 public class ConsumidorDeAnalise {
@@ -42,9 +47,9 @@ public class ConsumidorDeAnalise {
                           @Header(name = Correlacao.CABECALHO, required = false)
                           String correlationIdDoCabecalho,
                           @Header(KafkaHeaders.RECEIVED_TOPIC) String topico) {
-        String correlationId = correlationIdDoCabecalho != null
+        String correlationId = Correlacao.normalizar(correlationIdDoCabecalho != null
                 ? correlationIdDoCabecalho
-                : String.valueOf(evento.correlationId());
+                : String.valueOf(evento.correlationId()));
         Correlacao.definir(correlationId);
         try {
             log.debug("mensagem recebida topico={} eventoId={}", topico, evento.eventId());

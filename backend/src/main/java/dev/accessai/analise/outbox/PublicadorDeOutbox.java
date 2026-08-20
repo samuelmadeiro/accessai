@@ -29,6 +29,12 @@ import org.springframework.transaction.annotation.Transactional;
  * {@code FOR UPDATE SKIP LOCKED}, duas instancias do backend nunca pegam a
  * mesma linha.
  *
+ * <p>O ciclo tem orcamento de tempo. A transacao segura as linhas travadas e
+ * uma conexao do pool enquanto espera o broker, e broker LENTO e o caso ruim:
+ * nao dispara nenhum alarme e multiplicaria o timeout de cada evento pelo
+ * tamanho do lote. Estourado o orcamento, o ciclo devolve o que sobrou para o
+ * proximo — as linhas continuam pendentes e nada se perde.
+ *
  * <p>O payload vai como bytes, exatamente como foi gravado. Reserializar aqui
  * abriria espaco para o que esta no banco e o que foi publicado divergirem
  * quando o formato do evento mudar.
@@ -57,13 +63,26 @@ public class PublicadorDeOutbox {
     @Scheduled(fixedDelayString = "${accessai.outbox.intervalo-ms}")
     @Transactional
     public void publicarPendentes() {
-        List<EventoDeOutbox> pendentes = repositorio.pegarPendentes(configuracao.tamanhoDoLote());
+        List<EventoDeOutbox> pendentes = repositorio.pegarPendentes(
+                configuracao.tamanhoDoLote(), configuracao.maxTentativas());
         if (pendentes.isEmpty()) {
             return;
         }
         log.debug("outbox: {} evento(s) pendente(s)", pendentes.size());
+
+        // nanoTime e nao o Clock injetado: aqui a pergunta e "quanto tempo
+        // passou", nao "que horas sao". Clock fixo de teste responde a segunda.
+        long limite = System.nanoTime()
+                + TimeUnit.MILLISECONDS.toNanos(configuracao.orcamentoDoLoteMs());
+        int publicadosNoCiclo = 0;
         for (EventoDeOutbox evento : pendentes) {
+            if (publicadosNoCiclo > 0 && System.nanoTime() - limite >= 0) {
+                log.warn("orcamento do ciclo esgotado; {} evento(s) ficam para o proximo",
+                        pendentes.size() - publicadosNoCiclo);
+                break;
+            }
             publicar(evento);
+            publicadosNoCiclo++;
         }
     }
 

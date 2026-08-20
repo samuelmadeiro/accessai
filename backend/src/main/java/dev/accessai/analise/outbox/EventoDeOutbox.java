@@ -109,10 +109,6 @@ public class EventoDeOutbox {
         return agregadoId;
     }
 
-    public String getTipo() {
-        return tipo;
-    }
-
     public String getTopico() {
         return topico;
     }
