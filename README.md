@@ -16,14 +16,25 @@ O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma 
 | 1 | Upload → Kafka → 1 regra → Postgres → `GET /analyses/{id}` | **Pronta** |
 | 2 | Rule Engine completo (6 regras) e score por categoria | **Pronta** |
 | 3 | Outbox, retry com backoff, DLT, correlation ID | **Pronta** |
-| 4–5 | Dataset, treino e ML Service | não iniciada |
+| 4 | Dataset, treino e métricas | dataset e extração **prontos**; treino bloqueado no D2 |
+| 5 | ML Service consumindo Kafka, predição no resultado | não iniciada |
 | 6–7 | AI Gateway e copilot | não iniciada |
 | 8–9 | Frontend acessível, observabilidade | não iniciada |
 
-**Não existe ML nem IA neste repositório ainda.** Não há `ml-service/`, não há
-modelo treinado, não há chamada a LLM. Tudo aqui é determinístico: seis regras
-que leem XML. Quando ML e IA entrarem, entram como camadas de interpretação
-sobre o Rule Engine — nunca como substituto dele (`CONTRIBUTING.md` §2).
+**Não existe modelo treinado nem IA neste repositório.** Existe `ml-service/`,
+e ele hoje só monta dataset: lê o corpus `.docx`, extrai os textos alternativos
+com procedência e divide em treino/validação/teste. Não há modelo, não há
+inferência, não há chamada a LLM. Tudo que produz resultado aqui é
+determinístico: seis regras que leem XML.
+
+O treino está **bloqueado** e isso é a entrega mais honesta da Slice 4. O corpus
+real de 9 documentos públicos tem 5 imagens e **zero textos alternativos** —
+medido de forma reproduzível por `accessai_ml.dataset.cli`, não estimado. Sem
+amostra não há o que rotular, e a procedência do dataset (D2) segue como
+proposta no ADR 0002.
+
+Quando ML e IA entrarem, entram como camadas de interpretação sobre o Rule
+Engine — nunca como substituto dele (`CONTRIBUTING.md` §2).
 
 ### As seis regras implementadas
 

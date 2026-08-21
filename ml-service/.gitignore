@@ -1,0 +1,17 @@
+# Ambiente virtual: reconstruido por `python -m venv .venv`.
+.venv/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+
+# Datasets derivados NAO sao versionados. Eles sao funcao do corpus, que ja e
+# rastreado por datasets/corpus/manifest.json, mais o codigo desta pasta.
+# Commitar o derivado cria uma segunda fonte de verdade que envelhece sozinha —
+# e, no caso do texto extraido de documento publico real, carrega dado pessoal
+# para o historico do git, onde ele nao sai mais.
+data/
+
+# O modelo treinado entra no git so quando existir modelo de verdade, com model
+# card em docs/ml/. Binario sem procedencia e pior que nenhum.
+models/*
+!models/.gitkeep

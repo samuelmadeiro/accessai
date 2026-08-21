@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "accessai-ml"
+version = "0.1.0"
+description = "Dataset, treino e inferencia do AccessAI"
+requires-python = ">=3.12"
+
+# Dependencias do caminho de dataset apenas. scikit-learn, FastAPI e o cliente
+# Kafka entram quando as Slices 4 e 5 chegarem neles: dependencia declarada e
+# nao usada e ruido no lock e superficie de CVE de graca.
+#
+# A extracao NAO usa python-docx. O backend le OOXML por XML direto (ADR 0008)
+# porque biblioteca de alto nivel esconde o que nao entende, e alt text mora
+# exatamente nos atributos que ela esconde. Repetir aqui a mesma leitura por
+# zipfile + ElementTree mantem as duas pontas olhando para o mesmo XML.
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.9",
+    "mypy>=1.14",
+]
+
+[project.scripts]
+accessai-dataset = "accessai_ml.dataset.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+
+[tool.ruff]
+line-length = 95
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# E/F pycodestyle+pyflakes, I ordenacao de import, B bugbear, UP pyupgrade.
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+files = ["src"]
+python_version = "3.12"
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+disallow_untyped_defs = true
