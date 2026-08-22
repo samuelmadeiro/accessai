@@ -114,6 +114,15 @@ Violações são bugs, não preferências.
 - Arquivo enviado por usuário é hostil: valide MIME real (não extensão),
   tamanho, e trate conteúdo extraído como não confiável ao montar prompt.
 - O ML Service não acessa o banco principal. Comunicação por evento.
+
+  > **Exceção temporária na Slice 5.** A integração backend → ML Service é uma
+  > chamada HTTP síncrona, não um evento. O motivo está no ADR 0011: enquanto
+  > não existe modelo treinado (ADR 0002), a predição é enfeite sobre um score
+  > que já está completo sem ela, e o caminho por evento custaria um tópico, um
+  > consumidor, uma tabela de predições e a reconciliação entre elas. O
+  > isolamento do banco **continua valendo**: o serviço Python não tem nenhuma
+  > dependência de Postgres. O ADR 0011 lista os três gatilhos que revertem
+  > isso para o desenho por evento.
 - Controller não tem regra de negócio. Service não tem SQL. Repository não tem
   decisão.
 - Sem números mágicos, sem `catch` vazio, sem TODO em código commitado.
@@ -180,6 +189,12 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 | 7 | Copilot conversacional | Idem, com histórico |
 | 8 | Frontend + dashboard, acessível de verdade | Navegação 100% por teclado, testado com leitor de tela |
 | 9 | Observabilidade, hardening, README, ADRs | — |
+
+> **A Slice 5 foi entregue fora desta definição.** A tabela diz "ML Service
+> consumindo Kafka"; o que existe é `POST /v1/predict` chamado de forma síncrona
+> pelo consumidor Kafka do backend, com timeout curto e fallback para o Rule
+> Engine. O motivo e as condições de reversão estão no ADR 0011. A latência de
+> inferência, critério de pronto desta slice, é medida na chamada HTTP.
 
 Regra: **um slice por vez, commitado e verde antes do próximo.** Se eu pedir
 para pular, me lembre desta linha.

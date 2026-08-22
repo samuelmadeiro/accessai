@@ -17,15 +17,16 @@ O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma 
 | 2 | Rule Engine completo (6 regras) e score por categoria | **Pronta** |
 | 3 | Outbox, retry com backoff, DLT, correlation ID | **Pronta** |
 | 4 | Dataset, treino e métricas | dataset e extração **prontos**; treino bloqueado no D2 |
-| 5 | ML Service consumindo Kafka, predição no resultado | não iniciada |
+| 5 | ML Service (FastAPI) e cliente Java com fallback | serviço e integração **prontos** (HTTP síncrono, ADR 0011); latência de inferência não medida |
 | 6–7 | AI Gateway e copilot | não iniciada |
 | 8–9 | Frontend acessível, observabilidade | não iniciada |
 
 **Não existe modelo treinado nem IA neste repositório.** Existe `ml-service/`,
-e ele hoje só monta dataset: lê o corpus `.docx`, extrai os textos alternativos
-com procedência e divide em treino/validação/teste. Não há modelo, não há
-inferência, não há chamada a LLM. Tudo que produz resultado aqui é
-determinístico: seis regras que leem XML.
+com montagem de dataset, pipeline de treino e um serviço de inferência FastAPI
+que o backend Java consome. Mas `models/` está vazio: **toda predição hoje vem
+da heurística**, e cada resposta declara isso em `usouHeuristica: true`, com
+`confianca: null` — regra não tem probabilidade. Não há chamada a LLM. Tudo que
+produz resultado aqui é determinístico: seis regras que leem XML.
 
 O treino está **bloqueado** e isso é a entrega mais honesta da Slice 4. O corpus
 real de 9 documentos públicos tem 5 imagens e **zero textos alternativos** —
@@ -389,7 +390,7 @@ backend/     Spring Boot 4.1, Java 25 — API, Rule Engine, extração, Kafka
 spike/       projeto descartável: POI × parsing XML direto (decisão registrada)
 datasets/    manifesto do corpus real; binários fora do git
 docs/
-  adr/                     uma decisão por arquivo (0001–0010)
+  adr/                     uma decisão por arquivo (0001–0011)
   architecture/fase-0.md   decisões D1–D6 e condições C-1 a C-3
   wcag/criteria.json       tabela versionada de critérios
   journal/01-slice.md      diário da Slice 1
