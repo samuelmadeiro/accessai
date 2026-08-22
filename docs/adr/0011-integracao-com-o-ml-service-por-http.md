@@ -57,10 +57,17 @@ conexao recusada, 500, corpo malformado.
 - **Acoplamento de disponibilidade.** Cada analise espera ate 1,5 s por um
   servico opcional. Nao quebra, mas atrasa.
 - **Uma chamada por imagem.** O contrato e de item unico. Documento com vinte
-  imagens vira vinte chamadas sequenciais, ate 30 s no pior caso dentro do
-  consumo de UMA mensagem. Enquanto a predicao nao estiver fiada no fluxo isso e
-  teorico; quando estiver, o teto de tempo precisa ser reavaliado — provavelmente
-  com lote, que a API nao suporta hoje.
+  imagens vira vinte chamadas sequenciais.
+
+  **Medido depois deste ADR ser escrito, e menos grave do que ele previa.** Com
+  p99 de 9 ms por chamada (ver `ml-service/README.md`), vinte imagens custam
+  ~180 ms — nao os 30 s que este paragrafo estimava. Os 30 s so acontecem se
+  TODA chamada estourar o timeout de 1500 ms, o que e o cenario de servico
+  travado, nao o tipico.
+
+  O que sobra de preocupacao e o cenario degradado, nao o normal: e com servico
+  travado que o custo vira linear no numero de imagens. Lote resolveria, e a API
+  nao suporta hoje.
 - **Contradiz o contrato escrito.** Alguem que leia so o `CONTRIBUTING.md` vai
   procurar um consumidor Kafka em `ml-service/` e nao vai achar. Este ADR e o
   unico lugar onde os dois se conciliam.

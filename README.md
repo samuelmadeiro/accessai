@@ -17,7 +17,7 @@ O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma 
 | 2 | Rule Engine completo (6 regras) e score por categoria | **Pronta** |
 | 3 | Outbox, retry com backoff, DLT, correlation ID | **Pronta** |
 | 4 | Dataset, treino e métricas | dataset e extração **prontos**; treino bloqueado no D2 |
-| 5 | ML Service (FastAPI) e cliente Java com fallback | serviço e integração **prontos** (HTTP síncrono, ADR 0011); latência de inferência não medida |
+| 5 | ML Service (FastAPI) e cliente Java com fallback | **Pronta** — HTTP síncrono (ADR 0011); latência p99 de 7 ms pela heurística, 9 ms com modelo |
 | 6–7 | AI Gateway e copilot | não iniciada |
 | 8–9 | Frontend acessível, observabilidade | não iniciada |
 

@@ -194,7 +194,9 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 > consumindo Kafka"; o que existe é `POST /v1/predict` chamado de forma síncrona
 > pelo consumidor Kafka do backend, com timeout curto e fallback para o Rule
 > Engine. O motivo e as condições de reversão estão no ADR 0011. A latência de
-> inferência, critério de pronto desta slice, é medida na chamada HTTP.
+> inferência, critério de pronto desta slice, é medida na chamada HTTP:
+> p99 de 7 ms pela heurística e 9 ms com modelo carregado, contra um
+> timeout de 1500 ms (`ml-service/README.md`).
 
 Regra: **um slice por vez, commitado e verde antes do próximo.** Se eu pedir
 para pular, me lembre desta linha.

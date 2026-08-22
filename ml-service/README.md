@@ -131,6 +131,49 @@ O serviço degrada em vez de cair: artefato ausente, ilegível, sem as chaves
 obrigatórias, ou que exploda na predição — todos caem para a heurística com o
 motivo registrado em `/health`.
 
+## Latência de inferência
+
+Critério de pronto da Slice 5 (`CONTRIBUTING.md` §7). Medida com
+`bench/medir_latencia.py`, 1000 iterações após 50 de aquecimento, cinco alt
+texts de tamanhos diferentes.
+
+```bash
+python -m bench.medir_latencia --modo processo
+python -m bench.medir_latencia --modo http --url http://127.0.0.1:8000
+```
+
+| Camada | Origem | p50 | p95 | p99 | máx |
+|---|---|---|---|---|---|
+| Em processo | heurística | 0,005 ms | 0,005 ms | 0,006 ms | 0,03 ms |
+| Em processo | modelo | 1,59 ms | 4,34 ms | 8,68 ms | 30,6 ms |
+| Cliente Java → HTTP | heurística | 2,26 ms | 4,45 ms | **7,11 ms** | 13,6 ms |
+| Cliente Java → HTTP | modelo | 4,19 ms | 6,76 ms | **9,22 ms** | 14,3 ms |
+| Cliente Java → serviço fora do ar | fallback | 1,44 ms | 4,24 ms | 6,46 ms | 6,7 ms |
+
+**O caminho real de hoje é a terceira linha:** `models/` está vazio, então toda
+predição vem da heurística. p99 de 7 ms.
+
+Três leituras que os números dão:
+
+1. **O timeout de 1500 ms tem folga de duas ordens de grandeza.** Mesmo com
+   modelo carregado, o p99 é 9 ms — 160× abaixo do teto. O timeout não está
+   apertado; está protegendo contra serviço travado, não contra serviço lento.
+2. **O modelo custa ~330× mais que a heurística** em processo (1,59 ms contra
+   0,005 ms). TF-IDF de palavra somado ao de caractere não é barato. Em termos
+   absolutos continua irrelevante perto do transporte.
+3. **Reuso de conexão importa mais que a predição.** O medidor Python via
+   `urllib` deu p99 de 30 ms; o cliente Java, 9 ms — mesmo serviço, mesma
+   máquina. `urllib.urlopen` abre conexão nova a cada chamada, o `HttpClient` do
+   JDK reusa. A diferença é maior que o custo de inferir.
+
+**O que estes números não dizem.** Tudo é loopback na mesma máquina: sem salto
+de rede, sem contenção, sem TLS. Em dois containers do compose sobe; entre hosts
+sobe mais. O valor aqui é o piso e a proporção, não o absoluto.
+
+Um detalhe do fallback: 1,4 ms é o custo de *conexão recusada em loopback*, que
+é imediata. Em rede real, host inalcançável gasta até o `connect-timeout-ms` de
+500 ms antes de desistir — o pior caso do fallback é 500 ms, não 1,4 ms.
+
 ## Testes e qualidade
 
 ```bash
