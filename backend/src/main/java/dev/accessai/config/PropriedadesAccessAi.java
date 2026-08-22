@@ -10,9 +10,25 @@ import org.springframework.util.unit.DataSize;
  */
 @ConfigurationProperties(prefix = "accessai")
 public record PropriedadesAccessAi(Upload upload, Kafka kafka, Score score,
-                                   Outbox outbox) {
+                                   Outbox outbox, MlService mlService) {
 
     public record Upload(DataSize tamanhoMaximo) {
+    }
+
+    /**
+     * Endereco e paciencia do ML Service.
+     *
+     * <p>Os timeouts sao curtos porque a chamada acontece durante o
+     * processamento de uma mensagem do Kafka: esperar por um servico degradado
+     * segura a particao e atrasa todas as mensagens atras dela. Analise sem
+     * predicao agora vale mais que analise com predicao daqui a quinze
+     * segundos — ML e camada opcional (CONTRIBUTING.md secao 2).
+     *
+     * @param url            base do servico Python
+     * @param connectTimeoutMs espera pelo aperto de mao TCP
+     * @param readTimeoutMs    espera pela resposta depois de conectado
+     */
+    public record MlService(String url, long connectTimeoutMs, long readTimeoutMs) {
     }
 
     public record Kafka(String topicoAnaliseSolicitada, int particoes, short replicas,

@@ -1,5 +1,6 @@
-"""Servico de inferencia (FastAPI + consumidor Kafka).
+"""Servico de inferencia (FastAPI).
 
-Vazio de proposito: e a entrega da Slice 5. A Slice 4 vai ate metricas e
-versionamento do modelo (CONTRIBUTING.md secao 7).
+Sobe com ou sem modelo. Sem artefato em `models/`, responde pela heuristica e
+marca `usouHeuristica = true` — ver `servico.py` para o porque de marcar ser
+obrigatorio.
 """

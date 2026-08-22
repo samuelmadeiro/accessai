@@ -103,6 +103,14 @@ accessai:
     # este teto, uma linha impublicavel em definitivo e retentada para sempre e,
     # somadas o bastante, elas ocupam o lote inteiro e nenhum evento novo sai.
     max-tentativas: 10
+  ml-service:
+    # Fora do compose vale localhost; dentro, o compose injeta o nome do
+    # servico. Nenhum dos dois fica sem dono.
+    url: ${ML_SERVICE_URL:http://localhost:8000}
+    # Curtos de proposito: a chamada roda dentro do consumo de uma mensagem do
+    # Kafka, e esperar por um servico degradado segura a particao inteira.
+    connect-timeout-ms: 500
+    read-timeout-ms: 1500
   score:
     # Peso de cada principio WCAG na nota global. Iguais por padrao: nao ha
     # evidencia publicada para hierarquizar principios, e um 35/30/25/10

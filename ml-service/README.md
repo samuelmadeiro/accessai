@@ -10,8 +10,8 @@ dados hoje é o corpus em `datasets/corpus/`, lido por arquivo.
 | Parte | Situação |
 |---|---|
 | `dataset/` | Funcional. Monta o dataset de texto alternativo a partir do corpus real. |
-| `training/` | Vazio. Bloqueado pela decisão D2 — ver abaixo. |
-| `inference/` | Vazio. É a entrega da Slice 5. |
+| `training/` | Implementado e testado. **Sem dado para rodar** — ver D2 abaixo. |
+| `inference/` | API FastAPI funcionando. Sobe **sem modelo** e responde pela heurística, declarando isso. |
 
 ## Setup
 
@@ -46,6 +46,90 @@ Códigos de saída: `0` sucesso, `2` corpus inválido (sha256 divergente do
 manifesto), `3` nenhum alt distinto, `4` corpus não informado. O `3` existe para
 que um pipeline não siga em frente treinando em nada e reportando métrica de
 nada.
+
+## Treinar o modelo
+
+```bash
+python -m accessai_ml.training.train --dataset data/alt_texts.jsonl
+```
+
+**Hoje isso sai com código 3 e não escreve nada**, porque o dataset tem zero
+amostras rotuladas. É o comportamento correto: um pipeline que segue em frente
+com zero amostra grava um `.joblib` que parece modelo e reporta métrica de nada.
+
+Códigos de saída: `0` sucesso, `3` dataset inválido ou sem rótulo, `5` o modelo
+não superou os baselines (o artefato **não** é exportado).
+
+### Baselines não são enfeite
+
+O `CONTRIBUTING.md` §7 define a Slice 4 como pronta quando há "confusion matrix e
+baseline documentados; modelo pior que baseline é reportado como tal". Por isso
+o treino sempre ajusta dois baselines nos mesmos dados, do ADR 0002:
+
+| Baseline | O que é |
+|---|---|
+| Classe majoritária | Piso absoluto. Não bater isso significa não ter aprendido nada. |
+| Heurística | Comprimento, expressão genérica, nome de arquivo. Se regras alcançam o modelo, use as regras (§2). |
+
+O artefato **não é exportado** quando o modelo não supera os dois. Um `.joblib`
+pior que o baseline parado numa pasta acaba servido em produção por alguém que
+só viu o nome do arquivo. `--exportar-pior-que-baseline` libera, para inspeção.
+
+### Modelo
+
+TF-IDF de palavra `(1,2)` somado a TF-IDF de caractere `char_wb (3,5)`, seguido
+de `LogisticRegression` com `class_weight="balanced"`.
+
+Regressão logística e não `LinearSVC` porque a Slice 6 usa a confiança da
+predição para ajustar severidade, e SVM linear não entrega probabilidade
+calibrável sem um envelope extra. Com algumas centenas de amostras curtas, a
+diferença de acurácia entre os dois é ruído.
+
+O char n-gram existe para pegar nome de arquivo e ruído tipográfico
+(`IMG_0421.jpg`, `image1`) sem depender de tokenização — alt text tem poucas
+palavras, e é em sub-palavra que mora o sinal.
+
+A métrica principal é **macro-F1**, não acurácia: com classes desbalanceadas a
+acurácia premia quem ignora a classe rara, e a classe rara aqui é justamente o
+alt ruim, que é o que o produto precisa detectar.
+
+### Artefato
+
+`models/accessibility_classifier.joblib` carrega o pipeline mais versão do
+modelo, rótulos, hiperparâmetros, contagem por divisão, estratégia de divisão,
+veredito e as versões de Python, scikit-learn e joblib usadas na serialização.
+Binário sem procedência é pior que nenhum.
+
+## Servir a inferência
+
+```bash
+uvicorn accessai_ml.inference.main:app --port 8000
+```
+
+`ACCESSAI_MODELOS` aponta a pasta do artefato (padrão `models`).
+
+| Endpoint | O que faz |
+|---|---|
+| `GET /health` | Sempre 200 enquanto o processo responde. `modeloCarregado` diz se há artefato, com `motivo` ao lado. |
+| `POST /v1/predict` | Classifica um lote de alt texts. |
+
+`/health` **não** devolve 503 sem modelo: o serviço continua útil pela
+heurística, e 503 faria a orquestração reiniciar um container saudável em loop.
+
+### O que `usouHeuristica` significa
+
+Hoje não há artefato em `models/`, então **toda** predicação vem da heurística e
+sai marcada `usouHeuristica: true`, com `confianca: null`.
+
+Marcar é obrigatório, não cortesia. Um serviço chamado `/predict` que devolve o
+resultado de um punhado de regras sem dizer que são regras faz o consumidor
+acreditar que existe um modelo — o "ML que é if/else" que a §1 proíbe. E
+`confianca` fica nulo porque regra não tem probabilidade; um `1.0` ali faria o
+Java tratar heurística como modelo confiante.
+
+O serviço degrada em vez de cair: artefato ausente, ilegível, sem as chaves
+obrigatórias, ou que exploda na predição — todos caem para a heurística com o
+motivo registrado em `/health`.
 
 ## Testes e qualidade
 

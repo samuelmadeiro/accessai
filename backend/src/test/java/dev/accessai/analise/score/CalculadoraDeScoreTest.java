@@ -218,7 +218,8 @@ class CalculadoraDeScoreTest {
                         new PropriedadesAccessAi.Score.Pesos(perceptivel, operavel, compreensivel,
                                 robusto),
                         new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
-                new PropriedadesAccessAi.Outbox(500, 50, 2_000, 10_000, 10));
+                new PropriedadesAccessAi.Outbox(500, 50, 2_000, 10_000, 10),
+                new PropriedadesAccessAi.MlService("http://localhost:8000", 500, 1500));
         return new CalculadoraDeScore(propriedades);
     }
 }

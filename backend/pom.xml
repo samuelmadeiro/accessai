@@ -69,6 +69,18 @@
       <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
 
+    <!--
+      Mesma armadilha do Flyway e do Kafka, terceira vez: no Boot 4 as
+      autoconfiguracoes foram modularizadas. `spring-boot-starter-web` traz o
+      RestClient como CLASSE, mas o bean `RestClient.Builder` vem deste modulo.
+      Sem ele o contexto sobe ate encontrar o primeiro componente que injeta o
+      builder e morre com "No qualifying bean of type RestClient$Builder".
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-restclient</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>

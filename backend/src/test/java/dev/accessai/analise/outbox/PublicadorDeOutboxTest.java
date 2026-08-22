@@ -60,7 +60,8 @@ class PublicadorDeOutboxTest {
                 new PropriedadesAccessAi.Score(
                         new PropriedadesAccessAi.Score.Pesos(25, 25, 25, 25),
                         new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
-                new PropriedadesAccessAi.Outbox(500, 50, 2_000, ORCAMENTO_MS, MAX_TENTATIVAS));
+                new PropriedadesAccessAi.Outbox(500, 50, 2_000, ORCAMENTO_MS, MAX_TENTATIVAS),
+                new PropriedadesAccessAi.MlService("http://localhost:8000", 500, 1500));
         publicador = new PublicadorDeOutbox(repositorio, kafkaTemplate, propriedades,
                 Clock.fixed(AGORA, ZoneOffset.UTC));
     }
@@ -185,7 +186,8 @@ class PublicadorDeOutboxTest {
                 new PropriedadesAccessAi.Score(
                         new PropriedadesAccessAi.Score.Pesos(25, 25, 25, 25),
                         new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
-                new PropriedadesAccessAi.Outbox(500, 50, 2_000, orcamentoMs, MAX_TENTATIVAS));
+                new PropriedadesAccessAi.Outbox(500, 50, 2_000, orcamentoMs, MAX_TENTATIVAS),
+                new PropriedadesAccessAi.MlService("http://localhost:8000", 500, 1500));
         return new PublicadorDeOutbox(repositorio, kafkaTemplate, propriedades,
                 Clock.fixed(AGORA, ZoneOffset.UTC));
     }
