@@ -16,17 +16,30 @@ requires-python = ">=3.12"
 # porque biblioteca de alto nivel esconde o que nao entende, e alt text mora
 # exatamente nos atributos que ela esconde. Repetir aqui a mesma leitura por
 # zipfile + ElementTree mantem as duas pontas olhando para o mesmo XML.
-dependencies = []
+dependencies = [
+    # Treino do Modelo 1. scikit-learn e a escolha fixada no CONTRIBUTING.md
+    # secao 3 — nada de PyTorch/Transformers: com as ~600 amostras de alvo do
+    # ADR 0002, um transformer fine-tunado e a ferramenta errada para o tamanho
+    # do dado, e reabriria decisao fechada.
+    "scikit-learn>=1.6",
+    "joblib>=1.4",
+    # Servico de inferencia da Slice 5.
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
     "ruff>=0.9",
     "mypy>=1.14",
+    # TestClient do FastAPI depende de httpx.
+    "httpx>=0.28",
 ]
 
 [project.scripts]
 accessai-dataset = "accessai_ml.dataset.cli:main"
+accessai-treinar = "accessai_ml.training.train:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -50,3 +63,10 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = true
 disallow_untyped_defs = true
+
+# scikit-learn e joblib nao publicam py.typed. Ignorar so estes dois, e nao
+# ligar `ignore_missing_imports` global: o global esconderia import quebrado do
+# proprio projeto.
+[[tool.mypy.overrides]]
+module = ["sklearn.*", "joblib.*"]
+ignore_missing_imports = true
