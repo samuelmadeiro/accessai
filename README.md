@@ -17,7 +17,7 @@ O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma 
 | 2 | Rule Engine completo (6 regras) e score por categoria | **Pronta** |
 | 3 | Outbox, retry com backoff, DLT, correlation ID | **Pronta** |
 | 4 | Dataset, treino e métricas | dataset e extração **prontos**; treino bloqueado no D2 |
-| 5 | ML Service (FastAPI) e cliente Java com fallback | **Pronta** — HTTP síncrono (ADR 0011); latência p99 de 7 ms pela heurística, 9 ms com modelo |
+| 5 | ML Service (FastAPI), cliente Java e predição no resultado | **Pronta** — HTTP síncrono (ADR 0011); `predicoesDeAlt` no `GET`, fora do score; latência p99 de 7 ms |
 | 6–7 | AI Gateway e copilot | não iniciada |
 | 8–9 | Frontend acessível, observabilidade | não iniciada |
 
@@ -25,8 +25,13 @@ O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma 
 com montagem de dataset, pipeline de treino e um serviço de inferência FastAPI
 que o backend Java consome. Mas `models/` está vazio: **toda predição hoje vem
 da heurística**, e cada resposta declara isso em `usouHeuristica: true`, com
-`confianca: null` — regra não tem probabilidade. Não há chamada a LLM. Tudo que
-produz resultado aqui é determinístico: seis regras que leem XML.
+`confianca: null` — regra não tem probabilidade. Não há chamada a LLM.
+
+A predição aparece no `GET /analyses/{id}` em `predicoesDeAlt`, **fora do
+score**: a nota continua sendo soma ponderada de penalidades determinísticas, e
+cada ponto perdido rastreia até uma regra com evidência (`CONTRIBUTING.md` §6).
+Só imagem com alt preenchido entra — alt ausente é detecção determinística e já
+é regra.
 
 O treino está **bloqueado** e isso é a entrega mais honesta da Slice 4. O corpus
 real de 9 documentos públicos tem 5 imagens e **zero textos alternativos** —

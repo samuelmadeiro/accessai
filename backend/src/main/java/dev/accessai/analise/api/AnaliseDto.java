@@ -42,17 +42,46 @@ public final class AnaliseDto {
             Instant atualizadaEm,
             int totalDeProblemas,
             ScoreDoDocumento score,
-            List<ProblemaEncontrado> problemas) {
+            List<ProblemaEncontrado> problemas,
+            List<PredicaoDeAltText> predicoesDeAlt) {
 
         public static @NonNull RespostaDeAnalise de(@NonNull VisaoDaAnalise visao) {
             List<ProblemaEncontrado> problemas = visao.problemas().stream()
                     .map(ProblemaEncontrado::de)
                     .toList();
+            List<PredicaoDeAltText> predicoes = visao.predicoes().stream()
+                    .map(PredicaoDeAltText::de)
+                    .toList();
             return new RespostaDeAnalise(visao.analiseId(), visao.correlationId(),
                     visao.nomeArquivo(), visao.tipoMimeDetectado(), visao.tamanhoBytes(),
                     visao.sha256(), visao.situacao().name(), visao.criadaEm(),
                     visao.atualizadaEm(), problemas.size(),
-                    ScoreDoDocumento.de(visao.score()), problemas);
+                    ScoreDoDocumento.de(visao.score()), problemas, predicoes);
+        }
+    }
+
+    /**
+     * A qualidade de um texto alternativo, inferida pelo ML Service.
+     *
+     * <p>Sai FORA do score de proposito: o score e soma ponderada de penalidades
+     * deterministicas, e cada ponto perdido rastreia ate uma regra com evidencia
+     * (CONTRIBUTING.md secao 6). Predicao que somasse penalidade quebraria isso.
+     *
+     * <p>{@code usouHeuristica} nao e detalhe interno: e a diferenca entre "um
+     * modelo classificou isto" e "um punhado de regras classificou isto". Hoje
+     * ele e SEMPRE true — nao ha modelo treinado. {@code confianca} e nula
+     * quando ele e true, porque regra nao tem probabilidade.
+     *
+     * <p>Lista vazia significa uma de duas coisas: o documento nao tem imagem
+     * com alt, ou o ML Service estava indisponivel quando a analise rodou.
+     */
+    public record PredicaoDeAltText(String partePacote, String nomeImagem, String alt,
+                                    String categoria, Double confianca,
+                                    boolean usouHeuristica, String modeloVersao) {
+
+        public static @NonNull PredicaoDeAltText de(VisaoDaAnalise.@NonNull PredicaoVista p) {
+            return new PredicaoDeAltText(p.partePacote(), p.nomeImagem(), p.alt(),
+                    p.categoria(), p.confianca(), p.usouHeuristica(), p.modeloVersao());
         }
     }
 

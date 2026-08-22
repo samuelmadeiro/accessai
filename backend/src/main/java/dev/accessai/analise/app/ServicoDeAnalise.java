@@ -2,6 +2,8 @@ package dev.accessai.analise.app;
 
 import dev.accessai.analise.dominio.Analise;
 import dev.accessai.analise.dominio.AnaliseRepository;
+import dev.accessai.analise.dominio.PredicaoDeAlt;
+import dev.accessai.analise.dominio.PredicaoDeAltRepository;
 import dev.accessai.analise.dominio.Problema;
 import dev.accessai.analise.dominio.ProblemaRepository;
 import dev.accessai.analise.dominio.SituacaoAnalise;
@@ -31,6 +33,7 @@ public class ServicoDeAnalise {
 
     private final AnaliseRepository analiseRepository;
     private final ProblemaRepository problemaRepository;
+    private final PredicaoDeAltRepository predicaoRepository;
     private final RegistroDeAnalise registro;
     private final ValidadorDeDocx validador;
     private final CalculadoraDeScore calculadora;
@@ -39,6 +42,7 @@ public class ServicoDeAnalise {
 
     public ServicoDeAnalise(AnaliseRepository analiseRepository,
                             ProblemaRepository problemaRepository,
+                            PredicaoDeAltRepository predicaoRepository,
                             RegistroDeAnalise registro,
                             ValidadorDeDocx validador,
                             CalculadoraDeScore calculadora,
@@ -46,6 +50,7 @@ public class ServicoDeAnalise {
                             Clock clock) {
         this.analiseRepository = analiseRepository;
         this.problemaRepository = problemaRepository;
+        this.predicaoRepository = predicaoRepository;
         this.registro = registro;
         this.validador = validador;
         this.calculadora = calculadora;
@@ -99,7 +104,13 @@ public class ServicoDeAnalise {
                 ? calculadora.calcular(problemas, motor.principiosAvaliados())
                 : ScoreDaAnalise.naoCalculado();
 
-        return VisaoDaAnalise.de(analise, problemas, score);
+        // As predicoes sao LIDAS, nunca recalculadas aqui: chamar o ML Service
+        // na leitura poria latencia de rede em todo GET e faria a mesma analise
+        // responder coisas diferentes a cada consulta.
+        List<PredicaoDeAlt> predicoes =
+                predicaoRepository.findByAnaliseIdOrderByIndiceAsc(analiseId);
+
+        return VisaoDaAnalise.de(analise, problemas, score, predicoes);
     }
 
     private static String calcularSha256(byte[] conteudo) {

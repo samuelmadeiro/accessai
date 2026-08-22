@@ -1,6 +1,7 @@
 package dev.accessai.analise.app;
 
 import dev.accessai.analise.dominio.Analise;
+import dev.accessai.analise.dominio.PredicaoDeAlt;
 import dev.accessai.analise.dominio.Problema;
 import dev.accessai.analise.dominio.SituacaoAnalise;
 import dev.accessai.analise.score.ScoreDaAnalise;
@@ -30,13 +31,33 @@ public record VisaoDaAnalise(
         Instant criadaEm,
         Instant atualizadaEm,
         List<ProblemaVisto> problemas,
-        ScoreDaAnalise score) {
+        ScoreDaAnalise score,
+        List<PredicaoVista> predicoes) {
 
     public VisaoDaAnalise {
         problemas = List.copyOf(problemas);
+        predicoes = List.copyOf(predicoes);
     }
 
-    static VisaoDaAnalise de(Analise analise, List<Problema> problemas, ScoreDaAnalise score) {
+    /**
+     * Qualidade de um alt text, inferida.
+     *
+     * <p>Fora do score de proposito (CONTRIBUTING.md secao 6). {@code confianca}
+     * e nula quando {@code usouHeuristica} e true: regra nao tem probabilidade.
+     */
+    public record PredicaoVista(String partePacote, String nomeImagem, String alt,
+                                String categoria, Double confianca,
+                                boolean usouHeuristica, String modeloVersao) {
+
+        static PredicaoVista de(PredicaoDeAlt p) {
+            return new PredicaoVista(p.getPartePacote(), p.getNomeImagem(), p.getAlt(),
+                    p.getCategoria(), p.getConfianca(), p.isUsouHeuristica(),
+                    p.getModeloVersao());
+        }
+    }
+
+    static VisaoDaAnalise de(Analise analise, List<Problema> problemas, ScoreDaAnalise score,
+                             List<PredicaoDeAlt> predicoes) {
         return new VisaoDaAnalise(
                 analise.getId(),
                 analise.getCorrelationId(),
@@ -48,7 +69,8 @@ public record VisaoDaAnalise(
                 analise.getCriadaEm(),
                 analise.getAtualizadaEm(),
                 problemas.stream().map(ProblemaVisto::de).toList(),
-                score);
+                score,
+                predicoes.stream().map(PredicaoVista::de).toList());
     }
 
     /** Um problema encontrado, ja fora do dominio persistente. */
