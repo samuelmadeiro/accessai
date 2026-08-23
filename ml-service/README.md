@@ -81,6 +81,67 @@ o IP.
 Códigos de saída: `0` sucesso, `4` nenhuma amostra sobreviveu aos filtros,
 `6` a saída já existe (use `--sobrescrever`).
 
+## Completar a classe `INSUFFICIENT` (`accessai-coletar-web`)
+
+```bash
+accessai-coletar-web --cota 50 --url https://exemplo.org/pagina
+```
+
+A coleta do Commons trouxe **6 `INSUFFICIENT` em 900**. Descrição de catálogo é
+escrita por quem se importa com o catálogo; alt ruim mora em HTML comum, onde
+ninguém revisou. Sem essa classe o classificador não aprende a detectar
+justamente o que o produto precisa detectar.
+
+**O filtro tem polaridade oposta à do coletor do Commons.** Lá, nome de arquivo é
+ruído a descartar; aqui, nome de arquivo **é** a amostra. Os dois módulos não
+compartilham o filtro de propósito.
+
+| Motivo | Exemplo |
+|---|---|
+| `nome_de_arquivo` | `IMG_0001.jpg`, `foto (3).jpeg` |
+| `hash` | `3f2a9c1e8b7d`, `a1b2c3d4e5f6.png` |
+| `termo_generico_solto` | `imagem`, `banner`, `sem titulo` |
+| `sem_letra` | `12345`, `...` |
+| `curto_demais` | `abc` |
+
+Termo genérico só conta **sozinho**: "banner de divulgação do edital de 2025"
+descreve e passa.
+
+**Etiqueta de robô.** `robots.txt` consultado uma vez por host, host que proíbe é
+pulado sem tentativa, e **não há flag para ignorar** — coletor com botão de
+desligar a etiqueta é coletor que vai ser usado com o botão desligado. Além
+disso: `User-Agent` identificado, pausa de 1 s, recuo exponencial em 429/5xx,
+`Retry-After` respeitado, timeout em toda leitura, teto de 5 MB por página. Não
+segue link nem descobre página sozinho: lê exatamente as URLs informadas.
+
+### Fallback sintético
+
+Sem URL, ou quando a coleta não fecha a cota, `gerador_insufficient` completa com
+até 50 variações determinísticas (nome de câmera, hash de CDN, GIF de
+espaçamento, placeholder, termo genérico), intercaladas para que `--cota 8` não
+entregue só nome de arquivo.
+
+Três coisas impedem isso de virar o dataset fabricado que o ADR 0002 proíbe:
+
+1. `origem_do_dado: "sintetico_fallback"` em cada linha, e a contagem em
+   `data/relatorio_coleta_web.json`.
+2. **Só entram no treino.** A parte é forçada, não sorteada pelo hash — e a
+   validação cruzada as remove da metade avaliada de cada pasta.
+3. São fallback: com URL disponível, o coletor coleta e elas ficam de fora
+   (`--sem-fallback` desliga de vez).
+
+O ponto 2 não é decorativo. Antes dele, a macro-F1 da validação cruzada dava
+**0,709**; com as sintéticas fora do lado avaliado, **0,508** — o mesmo número da
+validação retida. Os 0,2 de diferença eram o modelo sendo medido sobre strings
+escritas neste repositório.
+
+A mesclagem no `data/alt_texts.jsonl` **preserva tudo que já existe** e deduplica
+por alt normalizado — a mesma chave de `dataset.divisao`, para o vazamento não
+voltar pela porta dos fundos.
+
+Códigos de saída: `0` cota atingida, `2` sem URL e sem fallback, `3` entrada
+inválida, `4` cota não atingida.
+
 ## Revisar os rótulos (`accessai-revisar`)
 
 ```bash
