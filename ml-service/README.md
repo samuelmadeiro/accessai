@@ -208,6 +208,24 @@ com zero amostra grava um `.joblib` que parece modelo e reporta métrica de nada
 Códigos de saída: `0` sucesso, `3` dataset inválido ou sem rótulo, `5` o modelo
 não superou os baselines (o artefato **não** é exportado).
 
+### Validação cruzada
+
+`StratifiedGroupKFold` sobre treino + validação, com o teste de fora. O grupo é
+o mesmo de `dataset.divisao` — alt normalizado — porque `StratifiedKFold`
+sozinho partiria o grupo e inflaria a métrica, e `GroupKFold` sozinho deixaria
+uma pasta sem a classe rara.
+
+O que importa no resultado é o **desvio**: ele diz se o ganho sobre o baseline
+sobrevive à reamostragem ou se foi sorte de uma divisão específica. `--pastas`
+ajusta o número de pastas; o coletor reduz sozinho quando a classe mais rara ou
+o número de grupos não sustenta o valor pedido, e registra a redução no
+relatório. Pasta que falha ao ajustar entra em `pastas_com_falha` sem derrubar o
+treino: validação cruzada é diagnóstico, não critério de exportação.
+
+`--min-df` controla o corte de frequência do TF-IDF (padrão `2`): termo que
+aparece numa amostra só costuma ser nome próprio ou erro de digitação, e vira
+atalho que o modelo memoriza.
+
 ### Baselines não são enfeite
 
 O `CONTRIBUTING.md` §7 define a Slice 4 como pronta quando há "confusion matrix e

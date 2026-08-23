@@ -26,7 +26,7 @@ import joblib
 import sklearn
 
 from ..dataset import divisao
-from . import dados, metricas, modelo
+from . import dados, metricas, modelo, validacao
 
 VERSAO_DO_MODELO = "0.1.0"
 NOME_DO_ARTEFATO = "accessibility_classifier.joblib"
@@ -62,13 +62,15 @@ def _rotulos_presentes(conjuntos: dados.Conjuntos) -> list[str]:
     return [r for r in dados.ROTULOS_VALIDOS if r in vistos]
 
 
-def treinar(conjuntos: dados.Conjuntos, c: float, semente: int) -> dict[str, Any]:
+def treinar(conjuntos: dados.Conjuntos, c: float, semente: int,
+            min_df: int = modelo.MIN_DF_PADRAO,
+            pastas: int = validacao.PASTAS_PADRAO) -> dict[str, Any]:
     """Treina modelo e baselines nos MESMOS dados e avalia nos mesmos conjuntos."""
     rotulos = _rotulos_presentes(conjuntos)
     x_treino = conjuntos.textos(conjuntos.treino)
     y_treino = conjuntos.rotulos(conjuntos.treino)
 
-    pipeline = modelo.construir_pipeline(c=c, semente=semente)
+    pipeline = modelo.construir_pipeline(c=c, semente=semente, min_df=min_df)
     pipeline.fit(x_treino, y_treino)
 
     majoritario = modelo.construir_baseline_majoritario(semente=semente)
@@ -101,19 +103,25 @@ def treinar(conjuntos: dados.Conjuntos, c: float, semente: int) -> dict[str, Any
     textos = conjuntos.textos(amostras)
     verdadeiros = conjuntos.rotulos(amostras)
 
+    # A validacao cruzada roda sobre treino + validacao, com o teste de fora, e
+    # o artefato exportado continua sendo o ajustado no treino completo: as
+    # pastas medem estabilidade, nao produzem o modelo que vai para producao.
+    cruzada = validacao.validar(conjuntos.treino + conjuntos.validacao, rotulos,
+                                c=c, semente=semente, min_df=min_df, pastas=pastas)
+
     julgamento = metricas.veredito(
         metricas.f1_macro(pipeline, textos, verdadeiros, rotulos),
         metricas.f1_macro(majoritario, textos, verdadeiros, rotulos),
         metricas.f1_macro(heuristico, textos, verdadeiros, rotulos))
     julgamento["medido_em"] = parte_do_veredito
 
-    return {"pipeline": pipeline, "rotulos": rotulos,
-            "avaliacoes": avaliacoes, "veredito": julgamento}
+    return {"pipeline": pipeline, "rotulos": rotulos, "avaliacoes": avaliacoes,
+            "validacao_cruzada": cruzada, "veredito": julgamento}
 
 
 def montar_relatorio(conjuntos: dados.Conjuntos, resultado: dict[str, Any],
-                     caminho_do_dataset: pathlib.Path, c: float,
-                     semente: int) -> dict[str, Any]:
+                     caminho_do_dataset: pathlib.Path, c: float, semente: int,
+                     min_df: int = modelo.MIN_DF_PADRAO) -> dict[str, Any]:
     return {
         "versao_do_modelo": VERSAO_DO_MODELO,
         "gerado_em": _agora(),
@@ -132,8 +140,10 @@ def montar_relatorio(conjuntos: dados.Conjuntos, resultado: dict[str, Any],
             "class_weight": "balanced",
             "random_state": semente,
             "features": "TfidfVectorizer word(1,2) + char_wb(3,5), sublinear_tf",
+            "min_df": min_df,
         },
         "metrica_principal": metricas.METRICA_PRINCIPAL,
+        "validacao_cruzada": resultado["validacao_cruzada"],
         "avaliacoes": resultado["avaliacoes"],
         "veredito": resultado["veredito"],
         "ambiente": {
@@ -157,6 +167,7 @@ def exportar(destino: pathlib.Path, resultado: dict[str, Any],
             "dataset": relatorio["dataset"],
             "amostras": relatorio["amostras"],
             "hiperparametros": relatorio["hiperparametros"],
+            "validacao_cruzada": relatorio["validacao_cruzada"],
             "veredito": relatorio["veredito"],
             "ambiente": relatorio["ambiente"],
             "divisao": {
@@ -181,6 +192,11 @@ def main(argv: list[str] | None = None) -> int:
     analisador.add_argument("--relatorio", type=pathlib.Path,
                             default=pathlib.Path("data") / NOME_DO_RELATORIO)
     analisador.add_argument("--C", dest="c", type=float, default=modelo.C_PADRAO)
+    analisador.add_argument("--min-df", dest="min_df", type=int,
+                            default=modelo.MIN_DF_PADRAO,
+                            help="corte de frequencia minima do TF-IDF")
+    analisador.add_argument("--pastas", type=int, default=validacao.PASTAS_PADRAO,
+                            help="pastas da validacao cruzada StratifiedGroupKFold")
     analisador.add_argument("--semente", type=int, default=42)
     analisador.add_argument("--exportar-pior-que-baseline", action="store_true",
                             help="grava o artefato mesmo quando ele nao supera "
@@ -193,13 +209,26 @@ def main(argv: list[str] | None = None) -> int:
         print(f"dataset invalido: {erro}", file=sys.stderr)
         return SAIDA_DATASET_INVALIDO
 
-    resultado = treinar(conjuntos, c=argumentos.c, semente=argumentos.semente)
+    resultado = treinar(conjuntos, c=argumentos.c, semente=argumentos.semente,
+                        min_df=argumentos.min_df, pastas=argumentos.pastas)
     relatorio = montar_relatorio(conjuntos, resultado, argumentos.dataset,
-                                 argumentos.c, argumentos.semente)
+                                 argumentos.c, argumentos.semente,
+                                 min_df=argumentos.min_df)
 
     argumentos.relatorio.parent.mkdir(parents=True, exist_ok=True)
     argumentos.relatorio.write_text(
         json.dumps(relatorio, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    cruzada = relatorio["validacao_cruzada"]
+    if cruzada["executada"]:
+        resumo = cruzada["resumo"]["modelo"]
+        print(f"validacao cruzada ({cruzada['pastas_efetivas']} pastas, "
+              f"StratifiedGroupKFold): macro-F1 {resumo['media']:.3f} "
+              f"+/- {resumo['desvio']:.3f} "
+              f"[{resumo['minimo']:.3f}, {resumo['maximo']:.3f}]")
+    else:
+        print(f"validacao cruzada NAO executada: {cruzada['motivo']}",
+              file=sys.stderr)
 
     print(json.dumps(relatorio["veredito"], ensure_ascii=False, indent=2))
     print(f"\nrelatorio em {argumentos.relatorio.resolve()}")

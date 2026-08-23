@@ -15,9 +15,10 @@ import pathlib
 
 import joblib
 import pytest
+from sklearn.model_selection import StratifiedGroupKFold
 
 from accessai_ml.dataset import divisao
-from accessai_ml.training import dados, metricas, modelo, train
+from accessai_ml.training import dados, metricas, modelo, train, validacao
 
 BOM = "GOOD"
 FRACO = "WEAK"
@@ -198,6 +199,95 @@ def test_veredito_aprova_modelo_que_supera():
     assert julgamento["ganho_sobre_melhor_baseline"] == pytest.approx(0.25)
 
 
+# --------------------------------------------------- validacao cruzada
+
+def _amostras(rotuladas: list[tuple[str, str]]) -> list[dados.Amostra]:
+    return [dados.Amostra(id=f"s{i}", texto=texto, rotulo=rotulo,
+                          grupo=divisao.chave_de_agrupamento(texto, "s.docx"),
+                          divisao="treino")
+            for i, (texto, rotulo) in enumerate(rotuladas)]
+
+
+def test_validacao_cruzada_roda_e_resume_as_pastas():
+    amostras = _amostras(SINTETICOS)
+
+    resultado = validacao.validar(amostras, [BOM, FRACO, INSUFICIENTE], c=1.0,
+                                  semente=42, min_df=modelo.MIN_DF_PADRAO)
+
+    assert resultado["executada"] is True
+    assert resultado["pastas_efetivas"] == validacao.PASTAS_PADRAO
+    assert len(resultado["por_pasta"]) == validacao.PASTAS_PADRAO
+    assert resultado["pastas_com_falha"] == []
+    for chave in ("modelo", "baseline_majoritario", "baseline_heuristico"):
+        resumo = resultado["resumo"][chave]
+        assert 0.0 <= resumo["minimo"] <= resumo["media"] <= resumo["maximo"] <= 1.0
+        assert resumo["desvio"] >= 0.0
+    # Toda amostra e avaliada exatamente uma vez ao longo das pastas.
+    assert sum(p["amostras_teste"] for p in resultado["por_pasta"]) == len(amostras)
+
+
+def test_pastas_nunca_partem_um_grupo_entre_treino_e_teste():
+    # A razao de ser do StratifiedGroupKFold: alt repetido nos dois lados
+    # inflaria a macro-F1 sem o modelo ter aprendido nada.
+    repetidos = SINTETICOS + [(texto, rotulo) for texto, rotulo in SINTETICOS[:6]]
+    amostras = _amostras(repetidos)
+    textos = [a.texto for a in amostras]
+    rotulos = [a.rotulo for a in amostras]
+    grupos = [a.grupo for a in amostras]
+
+    divisor = StratifiedGroupKFold(n_splits=validacao.PASTAS_PADRAO, shuffle=True,
+                                   random_state=42)
+    for indices_treino, indices_teste in divisor.split(textos, rotulos, groups=grupos):
+        assert not ({grupos[i] for i in indices_treino}
+                    & {grupos[i] for i in indices_teste})
+
+
+def test_validacao_cruzada_reduz_as_pastas_quando_a_classe_rara_nao_da():
+    # Tres amostras na classe rara nao sustentam cinco pastas.
+    amostras = _amostras([(t, r) for t, r in SINTETICOS if r != INSUFICIENTE]
+                         + [(t, r) for t, r in SINTETICOS if r == INSUFICIENTE][:3])
+
+    resultado = validacao.validar(amostras, [BOM, FRACO, INSUFICIENTE], c=1.0,
+                                  semente=42, min_df=1)
+
+    assert resultado["executada"] is True
+    assert resultado["pastas_efetivas"] == 3
+    assert "classe mais rara" in resultado["reducao"]
+
+
+def test_validacao_cruzada_nao_roda_com_amostras_de_menos():
+    amostras = _amostras([("Grafico de barras do orcamento anual", BOM),
+                          ("imagem", INSUFICIENTE)])
+
+    resultado = validacao.validar(amostras, [BOM, INSUFICIENTE], c=1.0, semente=42,
+                                  min_df=1)
+
+    assert resultado["executada"] is False
+    assert "abaixo do minimo" in resultado["motivo"]
+
+
+def test_pasta_que_falha_ao_ajustar_nao_derruba_o_treino(monkeypatch):
+    # Diagnostico que aborta o treino inteiro e pior que diagnostico ausente.
+    amostras = _amostras(SINTETICOS)
+    chamadas = {"n": 0}
+    original = modelo.construir_pipeline
+
+    def falha_na_primeira(*args, **kwargs):
+        chamadas["n"] += 1
+        if chamadas["n"] == 1:
+            raise ValueError("vocabulario vazio depois da poda")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(modelo, "construir_pipeline", falha_na_primeira)
+    resultado = validacao.validar(amostras, [BOM, FRACO, INSUFICIENTE], c=1.0,
+                                  semente=42, min_df=modelo.MIN_DF_PADRAO)
+
+    assert resultado["executada"] is True
+    assert len(resultado["pastas_com_falha"]) == 1
+    assert "vocabulario vazio" in resultado["pastas_com_falha"][0]["erro"]
+    assert len(resultado["por_pasta"]) == validacao.PASTAS_PADRAO - 1
+
+
 # --------------------------------------------------------------------- CLI
 
 def test_cli_recusa_dataset_sem_rotulo(tmp_path, capsys):
@@ -225,6 +315,10 @@ def test_cli_escreve_relatorio_e_artefato(tmp_path):
     assert conteudo["versao_do_modelo"] == train.VERSAO_DO_MODELO
     assert conteudo["metrica_principal"] == "f1_macro"
     assert conteudo["hiperparametros"]["classificador"] == "LogisticRegression"
+    assert conteudo["hiperparametros"]["min_df"] == modelo.MIN_DF_PADRAO
+    assert conteudo["validacao_cruzada"]["executada"] is True
+    assert conteudo["validacao_cruzada"]["estrategia"].startswith(
+        "StratifiedGroupKFold")
     assert conteudo["ambiente"]["scikit_learn"]
     assert (modelos / train.NOME_DO_ARTEFATO).exists()
 
@@ -262,3 +356,41 @@ def test_cli_nao_exporta_artefato_pior_que_baseline(tmp_path, monkeypatch):
 
     assert codigo == train.SAIDA_PIOR_QUE_BASELINE
     assert not (modelos / train.NOME_DO_ARTEFATO).exists()
+
+
+# ------------------------------------------- sintetica na validacao cruzada
+
+def test_sintetica_treina_mas_nao_e_avaliada_na_validacao_cruzada():
+    # Sem esta remocao a macro-F1 sobe medindo string escrita no repositorio.
+    reais = _amostras(SINTETICOS)
+    geradas = [dados.Amostra(id=f"sintetico:{i}", texto=texto, rotulo=INSUFICIENTE,
+                             grupo=f"gerada-{i}", divisao="treino", sintetica=True)
+               for i, texto in enumerate(["IMG_0001.jpg", "a1b2c3d4.png",
+                                          "spacer.gif", "banner", "avatar",
+                                          "thumbnail", "1x1.gif", "logotipo"])]
+
+    resultado = validacao.validar(reais + geradas, [BOM, FRACO, INSUFICIENTE],
+                                  c=1.0, semente=42, min_df=1)
+
+    assert resultado["executada"] is True
+    assert resultado["sinteticas"] == len(geradas)
+    assert sum(p["sinteticas_removidas_da_avaliacao"]
+               for p in resultado["por_pasta"]) == len(geradas)
+    # Toda amostra REAL continua sendo avaliada exatamente uma vez.
+    assert sum(p["amostras_teste"] for p in resultado["por_pasta"]) == len(reais)
+
+
+def test_carga_marca_a_amostra_sintetica(tmp_path):
+    caminho = tmp_path / "d.jsonl"
+    escrever_dataset(caminho)
+    with caminho.open("a", encoding="utf-8", newline="\n") as arquivo:
+        arquivo.write(json.dumps({
+            "id": "sintetico:abc", "alt": "IMG_0001.jpg", "grupo": "img_0001.jpg",
+            "divisao": "treino", "rotulo": INSUFICIENTE,
+            "origem_do_dado": dados.ORIGEM_SINTETICA}, ensure_ascii=False) + "\n")
+
+    conjuntos = dados.carregar(caminho)
+    gerada = [a for a in conjuntos.treino if a.id == "sintetico:abc"]
+
+    assert gerada and gerada[0].sintetica is True
+    assert all(not a.sintetica for a in conjuntos.treino if a.id != "sintetico:abc")

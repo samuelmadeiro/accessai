@@ -31,6 +31,9 @@ class DatasetInvalidoError(Exception):
     """O dataset nao sustenta um treino, e a razao esta na mensagem."""
 
 
+ORIGEM_SINTETICA = "sintetico_fallback"
+
+
 @dataclasses.dataclass(frozen=True)
 class Amostra:
     id: str
@@ -38,6 +41,11 @@ class Amostra:
     rotulo: str
     grupo: str
     divisao: str
+    # Amostra gerada por `dataset.gerador_insufficient`, nao coletada. Viaja ate
+    # aqui porque a validacao cruzada precisa mante-la FORA da metade avaliada
+    # de cada pasta: ela ja esta presa ao treino na divisao fixa, e sem esta
+    # marca a validacao cruzada a colocaria de volta no lado medido.
+    sintetica: bool = False
 
     @property
     def contexto_disponivel(self) -> bool:
@@ -86,7 +94,8 @@ def _linha_para_amostra(linha: dict[str, Any], numero: int) -> Amostra | None:
             f"linha {numero}: divisao {parte!r} fora de {divisao.PARTES}.")
 
     return Amostra(id=identificador, texto=texto, rotulo=rotulo, grupo=grupo,
-                   divisao=str(parte))
+                   divisao=str(parte),
+                   sintetica=linha.get("origem_do_dado") == ORIGEM_SINTETICA)
 
 
 def carregar(caminho: pathlib.Path) -> Conjuntos:

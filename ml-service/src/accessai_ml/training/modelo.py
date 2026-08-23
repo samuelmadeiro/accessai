@@ -36,8 +36,20 @@ INSUFICIENTE = "INSUFFICIENT"
 C_PADRAO = 1.0
 MAX_ITER = 2000
 
+# `min_df=2` descarta o termo que aparece numa amostra so. Num corpus de alt
+# text isso e quase sempre um nome proprio ou um erro de digitacao: entra no
+# vocabulario, casa com exatamente uma linha do treino e vira um atalho que o
+# modelo memoriza. Cortar aqui e mais barato que regularizar depois.
+#
+# O corte tem custo e ele e real: com dataset pequeno, `min_df=2` pode podar o
+# vocabulario de palavra ate quase nada. O TF-IDF de caractere segura esse caso
+# — sub-palavra de 3 a 5 caracteres repete muito mais que palavra inteira — e
+# quem precisar do comportamento antigo passa `--min-df 1`.
+MIN_DF_PADRAO = 2
 
-def construir_pipeline(c: float = C_PADRAO, semente: int = 42) -> Pipeline:
+
+def construir_pipeline(c: float = C_PADRAO, semente: int = 42,
+                       min_df: int = MIN_DF_PADRAO) -> Pipeline:
     """TF-IDF de palavra e de caractere, seguido de regressao logistica.
 
     Os dois vetorizadores somados atacam problemas diferentes: o de palavra pega
@@ -48,12 +60,12 @@ def construir_pipeline(c: float = C_PADRAO, semente: int = 42) -> Pipeline:
     `class_weight="balanced"` porque as tres classes nao chegam equilibradas do
     mundo real, e macro-F1 pune quem ignora a classe rara.
     """
-    palavras = TfidfVectorizer(analyzer="word", ngram_range=(1, 2), min_df=1,
+    palavras = TfidfVectorizer(analyzer="word", ngram_range=(1, 2), min_df=min_df,
                                sublinear_tf=True, strip_accents="unicode",
                                lowercase=True)
-    caracteres = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), min_df=1,
-                                 sublinear_tf=True, strip_accents="unicode",
-                                 lowercase=True)
+    caracteres = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5),
+                                 min_df=min_df, sublinear_tf=True,
+                                 strip_accents="unicode", lowercase=True)
     return Pipeline([
         ("features", FeatureUnion([("palavras", palavras), ("caracteres", caracteres)])),
         ("classificador", LogisticRegression(
