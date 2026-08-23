@@ -47,6 +47,40 @@ manifesto), `3` nenhum alt distinto, `4` corpus não informado. O `3` existe par
 que um pipeline não siga em frente treinando em nada e reportando métrica de
 nada.
 
+## Coletar alt text público (Wikimedia Commons)
+
+```bash
+python -m accessai_ml.dataset.coletor_alt_publico --limite 1000
+```
+
+Existe porque o corpus `.docx` tem **zero** imagens com alt: sem matéria-prima
+não há o que rotular. O Commons é a fonte do ADR 0002 §3, com licença declarada
+por arquivo e API oficial — nada de raspar HTML.
+
+Duas fontes de texto, e a diferença importa:
+
+| `--fonte` | Campo da API | O que é |
+|---|---|---|
+| `legenda` | `entityterms.label` | *caption* estruturada, uma linha. O mais parecido com alt de verdade. Existe em poucos arquivos. |
+| `descricao` | `extmetadata.ImageDescription` | prosa de catálogo, com HTML dentro. Existe em quase todo arquivo, e é mais longa que um alt típico. |
+| `ambos` (padrão) | os dois | legenda preferida quando existe; `origem_do_alt` grava de onde saiu cada linha. |
+
+**O rótulo não vem preenchido.** A pré-classificação determinística vai em
+`rotulo_provisorio` e `rotulo` fica `null`, porque o ADR 0002 §4 exige rotulagem
+híbrida declarada — LLM pré-rotula, humano revisa, com taxa de correção e kappa
+de Cohen em 150 amostras. `--rotular-com-heurística` promove o pré-rótulo para
+`rotulo` e grava `origem_do_rotulo: "heuristica"` na linha; com ele o treino
+roda, mas mede concordância com uma regra, não qualidade de alt text.
+
+Etiqueta de API: `User-Agent` identificando a ferramenta, `maxlag=5`, pausa de
+0,5 s entre pedidos (`--pausa`) e recuo exponencial com jitter em 429 e 5xx,
+respeitando `Retry-After`. 4xx que não seja 429 **não** é retentado — pedido
+malformado não melhora sozinho, e insistir nele é o que faz a fundação bloquear
+o IP.
+
+Códigos de saída: `0` sucesso, `4` nenhuma amostra sobreviveu aos filtros,
+`6` a saída já existe (use `--sobrescrever`).
+
 ## Treinar o modelo
 
 ```bash

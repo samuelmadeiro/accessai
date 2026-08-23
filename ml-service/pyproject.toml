@@ -39,6 +39,7 @@ dev = [
 
 [project.scripts]
 accessai-dataset = "accessai_ml.dataset.cli:main"
+accessai-coletar = "accessai_ml.dataset.coletor_alt_publico:main"
 accessai-treinar = "accessai_ml.training.train:main"
 
 [tool.setuptools.packages.find]
