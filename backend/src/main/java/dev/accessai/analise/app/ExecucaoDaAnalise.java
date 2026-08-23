@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+
+import jakarta.annotation.Nonnull;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,8 +140,8 @@ public class ExecucaoDaAnalise {
      * {@link ClienteMlService} nunca lanca, entao a analise conclui do mesmo
      * jeito — com menos informacao, nao com menos analise.
      */
-    private List<PredicaoDeAlt> classificarAlts(java.util.UUID analiseId,
-                                                DocumentoExtraido extraido, Instant agora) {
+    private @NonNull List<PredicaoDeAlt> classificarAlts(java.util.UUID analiseId,
+                                                         @Nonnull DocumentoExtraido extraido, Instant agora) {//recebendo o dopcumento extraido
         List<PredicaoDeAlt> predicoes = new ArrayList<>();
         int indice = 0;
         for (ImagemDoDocumento imagem : extraido.imagens()) {

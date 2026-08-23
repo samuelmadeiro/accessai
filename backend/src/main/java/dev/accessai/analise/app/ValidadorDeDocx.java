@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
+
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 
 /**
@@ -35,10 +37,10 @@ public class ValidadorDeDocx {
      * @return o tipo MIME detectado a partir do conteudo
      * @throws DocumentoInvalidoException quando o conteudo nao e um DOCX legivel
      */
-    public String detectarTipo(byte[] conteudo) {
+    public String detectarTipo(byte @NonNull [] conteudo) {
         if (conteudo.length < ASSINATURA_ZIP.length
                 || conteudo[0] != ASSINATURA_ZIP[0] || conteudo[1] != ASSINATURA_ZIP[1]) {
-            throw new DocumentoInvalidoException(
+            throw new DocumentoInvalidoException(//Outro processo de documento nao válido
                     "conteudo nao e um pacote zip (assinatura PK ausente)");
         }
 

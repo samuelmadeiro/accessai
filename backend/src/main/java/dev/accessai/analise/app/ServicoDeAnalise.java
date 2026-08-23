@@ -110,7 +110,7 @@ public class ServicoDeAnalise {
         List<PredicaoDeAlt> predicoes =
                 predicaoRepository.findByAnaliseIdOrderByIndiceAsc(analiseId);
 
-        return VisaoDaAnalise.de(analise, problemas, score, predicoes);
+        return VisaoDaAnalise.de(analise, problemas, score, predicoes);//retornando a propria analise com os problemas e o score
     }
 
     private static String calcularSha256(byte[] conteudo) {

@@ -5,6 +5,8 @@ import dev.accessai.analise.dominio.PredicaoDeAlt;
 import dev.accessai.analise.dominio.Problema;
 import dev.accessai.analise.dominio.SituacaoAnalise;
 import dev.accessai.analise.score.ScoreDaAnalise;
+import org.jspecify.annotations.NonNull;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -49,15 +51,15 @@ public record VisaoDaAnalise(
                                 String categoria, Double confianca,
                                 boolean usouHeuristica, String modeloVersao) {
 
-        static PredicaoVista de(PredicaoDeAlt p) {
+        static @NonNull PredicaoVista de(@NonNull PredicaoDeAlt p) {
             return new PredicaoVista(p.getPartePacote(), p.getNomeImagem(), p.getAlt(),
                     p.getCategoria(), p.getConfianca(), p.isUsouHeuristica(),
                     p.getModeloVersao());
         }
     }
 
-    static VisaoDaAnalise de(Analise analise, List<Problema> problemas, ScoreDaAnalise score,
-                             List<PredicaoDeAlt> predicoes) {
+    static @NonNull VisaoDaAnalise de(@NonNull Analise analise, @NonNull List<Problema> problemas, @NonNull ScoreDaAnalise score,
+                                      @NonNull List<PredicaoDeAlt> predicoes) {
         return new VisaoDaAnalise(
                 analise.getId(),
                 analise.getCorrelationId(),
@@ -82,7 +84,7 @@ public record VisaoDaAnalise(
             String partePacote,
             String evidencia) {
 
-        static ProblemaVisto de(Problema p) {
+        static @NonNull ProblemaVisto de(@NonNull Problema p) {
             return new ProblemaVisto(p.getRegraId(), p.getCriterioWcag(), p.getNivelWcag(),
                     p.getSeveridade(), p.getPartePacote(), p.getEvidencia());
         }
