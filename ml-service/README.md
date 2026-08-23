@@ -195,6 +195,46 @@ consistentemente errados juntos, e o kappa não vê isso.
 Códigos de saída: `0` sucesso, `3` dataset inválido, `4` nada pendente e nada
 revisado.
 
+## Auditar os slices antes da revisão (`accessai-auditar-slices`)
+
+```bash
+accessai-auditar-slices --dataset data/alt_texts.jsonl
+```
+
+Varredura de integridade sobre o dataset, os contratos do pipeline e a fila de
+revisão, para que ninguém gaste 150 julgamentos humanos em cima de um arquivo
+que ainda vai mudar. Cinco eixos:
+
+| Eixo | O que confere |
+|---|---|
+| A | contagem por slice (5 governamentais sem alt, 700 do Commons, 44 sintéticas, 749 no total), `id` e alt normalizado sem duplicata, distribuição de classe e de comprimento |
+| B | a sintética é marcada, fica presa ao treino, e `training.validacao` de fato a remove do lado avaliado de cada pasta |
+| C | `amostrar_balanceado` entrega as 150 do ADR, embaralhadas, sem vazar o pré-rótulo para a tela |
+| D | enum `GOOD`/`WEAK`/`INSUFFICIENT` (nenhum `SUFFICIENT` sobrevivente) e vocabulário de `origem_do_rotulo` |
+| E | a saída de terminal reconfigura UTF-8 com `errors="replace"` |
+
+O Eixo B é **dinâmico**: as pastas do `StratifiedGroupKFold` são recalculadas
+pelo auditor com a mesma semente, e o que `validar` reporta ter avaliado é
+comparado com o que ele deveria ter avaliado. Confiar no número que o módulo
+auditado imprime não auditaria nada — se o filtro sumisse, ele reportaria
+"0 sintéticas removidas" com a mesma sinceridade. Neste corpus a macro-F1 sai
+`0.508 +/- 0.098` com o filtro no lugar e `0.709` sem ele; bater no segundo
+valor é FAIL.
+
+**O rótulo de trabalho é o `rotulo_provisorio`.** Enquanto `rotulo` for nulo em
+todas as linhas, a macro-F1 do Eixo B mede a heurística contra ela mesma. O
+relatório declara isso em `rotulo_de_trabalho` e conta os rótulos humanos — não
+é validação do pré-rótulo, e é exatamente por isso que a revisão existe.
+
+### `data/relatorio_auditoria_slices.json`
+
+Quebra por slice (totais, distribuição, papel no treino, `hash_dos_ids`), uma
+entrada por invariante com esperado/obtido, o `sha256` do dataset auditado e o
+booleano `pronto_para_revisao_humana`.
+
+Códigos de saída: `0` tudo íntegro, `1` qualquer divergência de contagem,
+vazamento de sintética para a validação, ou quebra de contrato de esquema.
+
 ## Treinar o modelo
 
 ```bash
