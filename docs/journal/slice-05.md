@@ -1,8 +1,10 @@
 # Slice 5 — ML Service (FastAPI), cliente Java com fallback e predição no resultado
 
 > **RASCUNHO.** O `CONTRIBUTING.md` §1 diz que esta entrada é escrita com as
-> palavras do autor. O registro factual está montado; as perguntas do contrato
-> estão marcadas **PARA COMPLETAR**.
+> palavras do autor. O registro factual está montado, e as perguntas do contrato
+> agora têm **rascunho de resposta** montado a partir do ADR 0011, do §6 e do
+> código — argumento, não voz. Reescrever em primeira pessoa e apagar este aviso
+> é o que fecha a slice: o critério do §1 é conseguir defender, não ter o texto.
 
 - **Estado:** `./mvnw clean verify` verde — 175 testes unitários e 15 E2E;
   `pytest` verde — 91 testes; `ruff` e `mypy` limpos
@@ -102,21 +104,128 @@ mais que a inferência.
 A medição corrigiu uma estimativa minha que estava no ADR: "até 30 s para vinte
 imagens" virou ~180 ms. Os 30 s só acontecem com o serviço travado.
 
-## PARA COMPLETAR
+## As perguntas do contrato
 
-**O que eu construí, com minhas palavras:** _(escrever)_
+> Rascunho. O argumento está montado; a voz é minha para reescrever.
 
-**Por que aceitei HTTP síncrono contra o meu próprio contrato:** _(escrever — o
-ADR 0011 tem o argumento; a resposta de entrevista é sua. A pergunta que vem
-depois é "e quando você reverte?")_
+### O que eu construí
 
-**Qual alternativa eu descartei e por quê:** _(escrever — candidatas: Kafka como
-o contrato mandava, gRPC, portar o classificador para Java)_
+Um caminho completo para um texto alternativo, da borda do backend até a
+resposta da API — e nenhum modelo.
 
-**Por que a predição não entra no score:** _(escrever — vale ensaiar, porque é a
-pergunta que separa "sei o que é ML" de "sei onde ML não deve entrar")_
+O consumidor Kafka do backend, depois de o Rule Engine já ter produzido o score,
+manda cada imagem **com alt presente** para o `ClienteMlService`. Ele fala
+`POST /v1/predict` no serviço FastAPI, com 500 ms de timeout de conexão e
+1500 ms de leitura, e **nunca lança**: timeout, conexão recusada, 4xx, 5xx e
+corpo malformado viram `RespostaMlDTO.indisponivel()`. Do outro lado,
+`ServicoDePredicao` devolve rótulo, confiança e `usouHeuristica`. A predição
+vira linha em `predicao_de_alt` e sai em `predicoesDeAlt` no `GET`, lida do
+banco e nunca recalculada.
 
-**O que eu ainda não sei defender numa entrevista:** _(escrever)_
+O que eu **não** construí é a parte que o nome do endpoint promete. `models/`
+está vazio, e por isso toda predição de hoje vem de regra. É o campo
+`usouHeuristica: true` que impede essa frase de ser mentira — sem ele, um
+serviço chamado `/predict` faria o consumidor acreditar num modelo que não
+existe. O que a Slice 5 entrega é a canalização, testada contra rede real.
+
+### Por que aceitei HTTP síncrono contra o meu próprio contrato
+
+Porque ML aqui é camada opcional (§2), e o custo do desenho certo não se paga
+enquanto ele for opcional.
+
+O score já está completo e correto sem predição nenhuma: ele é soma de
+penalidades determinísticas do Rule Engine. Perder a predição por
+indisponibilidade custa **uma informação a menos, não uma análise a menos**. O
+caminho por evento — tópico novo, consumidor Python, produtor de resultado,
+tabela de predições e a reconciliação "a análise já concluiu mas a predição
+ainda não chegou" — é muita peça móvel para enfeitar um resultado que hoje sai
+100% de heurística.
+
+A parte que eu defendo com mais convicção não é a escolha, é o procedimento: a
+divergência foi apontada **antes** de escrever o código, virou o ADR 0011, e o
+§5 e o §7 ganharam ressalva apontando para ele. O defeito seria fingir que a
+decisão original nunca existiu — aí o contrato viraria decoração.
+
+**E quando eu reverto?** Os três gatilhos estão no ADR 0011, e o destino dos
+três é o mesmo desenho por evento que o contrato já descrevia:
+
+1. **Existe modelo treinado** e a predição passa a pesar no que o produto
+   entrega. A partir daí, perder predição é perder produto, não enfeite — e
+   acoplar a análise à disponibilidade de outro processo fica indefensável.
+2. **A predição precisa ser reconciliada** com a análise. Nesse ponto metade da
+   infraestrutura do caminho assíncrono já existe e o resto custa pouco.
+3. **O tempo total de análise passa a incomodar** por causa das chamadas
+   sequenciais — o cenário degradado, não o normal.
+
+O gatilho 1 é o que está mais perto, e ele depende do ADR 0002 sair de PROPOSTA.
+
+### Qual alternativa eu descartei e por quê
+
+| Alternativa | Por que não, agora |
+|---|---|
+| **Kafka, como o contrato manda** | É a resposta certa e continua sendo. Não é "estava errado no contrato": é dívida com data de vencimento escrita. |
+| **gRPC** | Contrato tipado e mais barato no fio, mas paga geração de código e uma dependência nova dos dois lados para resolver um problema que o projeto não tem. Latência não era o gargalo — medi. |
+| **Portar o classificador para Java** | Some a chamada de rede inteira, e some o Python junto. O Python é metade do propósito (§1: portfólio de Backend **e** ML). Otimizar até desaparecer com o motivo do projeto. |
+| **Síncrono sem timeout curto** | Segura a partição do Kafka: uma mensagem lenta atrasa todas atrás dela. |
+| **Síncrono sem fallback** | Transformaria a camada opcional em dependência dura — o Python fora do ar derrubaria o processamento de toda mensagem. |
+
+### Por que a predição não entra no score
+
+Porque o score é a única coisa do produto que se explica linha a linha, e ML não
+se explica linha a linha.
+
+O §6 diz que cada ponto perdido rastreia até um problema específico, com
+evidência e critério WCAG. Uma predição não tem critério: "este alt parece
+fraco" não é violação de 1.1.1, é opinião de um classificador que **não vê a
+imagem** — ele detecta padrão linguístico de inadequação, e um alt bem escrito e
+completamente errado sai como `GOOD`. Se isso virasse linha em `problema`,
+entraria na conta pela porta dos fundos e o score deixaria de ser explicável,
+que é a propriedade que ele existe para ter.
+
+Hoje o argumento é ainda mais direto: toda predição vem de regra. Somar ao score
+uma regra que não passou pelo Rule Engine seria dar peso a uma heurística por
+fora do lugar onde heurística é auditável.
+
+O desenho carrega isso na estrutura, não na intenção: tabela própria,
+`usouHeuristica` obrigatório, `confianca` nula quando a origem é regra — regra
+não tem probabilidade, e um `1.0` ali faria o Java tratar regra como modelo
+confiante — e um `CHECK` no banco tornando a incoerência impossível de gravar.
+
+O limite honesto: ML **pode** ajustar a severidade de um problema que uma regra
+já detectou. Nunca o score final direto.
+
+### O que eu ainda não sei defender numa entrevista
+
+Candidatos objetivos — os buracos são reais, escolher quais são os meus é o que
+falta:
+
+1. **A métrica que existe não mede o que o nome dela diz.** A macro-F1 de
+   `0.508 ± 0.098` é calculada sobre `rotulo_provisorio`, que é a própria
+   heurística: ela mede a heurística contra ela mesma. Sei explicar por que ela
+   está aí; ainda não ensaiei responder "então qual é a acurácia do modelo?"
+   sem parecer que estou desconversando.
+2. **Por que TF-IDF + regressão logística e não um transformer.** A resposta
+   está no §3 e no ADR 0002 — tamanho do dado —, mas dita em voz alta ainda soa
+   como desculpa em vez de dimensionamento.
+3. **Não há heurística no lado Java.** Quando o Python cai, não sobra
+   classificação nenhuma. Sei o motivo (a mesma regra em duas linguagens
+   diverge), não sei sustentar a pergunta seguinte: "e o usuário, o que vê?".
+4. **`correlationId` vira UUID derivado** depois da borda HTTP. É
+   determinístico, mas grepar o log pelo id literal que o cliente mandou não
+   funciona — e isso é observabilidade, que é onde a pergunta costuma ir.
+5. **Uma chamada HTTP por imagem, sem lote.** Medido, o custo normal é
+   aceitável; a defesa depende de eu lembrar que o problema aparece só no
+   cenário degradado.
+6. **HTTP/2 h2c e o `RestClient.Builder` do Boot 4.** Resolvi medindo e
+   tentando. Sei o que fiz, não sei explicar bem *por que* o `HttpClient` do JDK
+   tenta upgrade h2c em texto claro por padrão.
+
+> **Inconsistência encontrada ao escrever isto.** O ADR 0011, em "Consequências",
+> ainda diz que "a predição não é persistida". A Slice 5 persistiu — `V4__predicao_de_alt.sql`,
+> `PredicaoDeAlt`, `PredicaoDeAltRepository` — que era justamente a saída que o
+> parágrafo previa ("ou ela vira coluna"). O gatilho 2 de reversão continua
+> válido, porque o que não existe é a **reconciliação**, não a coluna. Corrigir
+> o parágrafo do ADR é dívida de uma linha.
 
 ## Dívida consciente que segue aberta
 
