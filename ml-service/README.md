@@ -81,6 +81,59 @@ o IP.
 Códigos de saída: `0` sucesso, `4` nenhuma amostra sobreviveu aos filtros,
 `6` a saída já existe (use `--sobrescrever`).
 
+## Revisar os rótulos (`accessai-revisar`)
+
+```bash
+accessai-revisar --dataset data/alt_texts.jsonl
+```
+
+A outra metade do ADR 0002 §4: o coletor pré-rotula, esta CLI é onde o humano
+revisa. Mostra um alt por vez e espera uma tecla.
+
+```
+[1|g] GOOD    [2|w] WEAK    [3|i] INSUFFICIENT    [s] pular    [q] sair
+```
+
+**O pré-rótulo fica escondido por padrão.** Quem vê o palpite da heurística antes
+de julgar tende a concordar com ele, e a concordância medida deixa de medir
+concordância — mede ancoragem. `--mostrar-pre-rotulo` existe para depuração e
+invalida o kappa da sessão para efeito de ADR.
+
+A fila é **balanceada e embaralhada**: 50 por classe (`--por-classe`), misturadas
+no fim. Cinquenta `GOOD` seguidos ensinam a sequência ao revisor, e a
+concordância vira artefato da ordem de apresentação. Classe com menos que a cota
+entrega o que tem, e a falta sai em `faltando_por_classe`.
+
+O progresso é gravado ao sair por qualquer caminho — `q`, fim da fila, Ctrl-C,
+EOF ou exceção inesperada. O JSONL é reescrito por arquivo temporário na mesma
+pasta e `os.replace`; cada linha revisada ganha `rotulo`, `origem_do_rotulo:
+"humano"` e `data_revisao`.
+
+### `data/relatorio_revisao.json`
+
+Conta o **acumulado do arquivo**, não a sessão: 150 amostras não cabem numa
+sentada, e um relatório que contasse só a última rodada mandaria refazer
+trabalho já feito.
+
+| Campo | O que é |
+|---|---|
+| `total_revisado` | linhas com `origem_do_rotulo: "humano"` |
+| `taxa_correcao` | divergências ÷ total |
+| `kappa_cohen` | concordância pré-rótulo × humano, descontado o acaso |
+| `matriz_de_confusao` | linhas = pré-rótulo, colunas = humano |
+| `atende_adr0002` | `true` se `total ≥ 150` **e** `kappa ≥ 0,60` |
+
+**Por que kappa e não acurácia.** Com 70% das amostras em `GOOD`, um revisor que
+carimbasse `GOOD` em tudo acertaria 70% e não teria revisado nada — o kappa
+devolve 0 nesse caso.
+
+**O que passar autoriza.** Kappa alto sustenta promover o pré-rótulo no resto do
+dataset. Não diz que o rótulo está certo: revisor e heurística podem estar
+consistentemente errados juntos, e o kappa não vê isso.
+
+Códigos de saída: `0` sucesso, `3` dataset inválido, `4` nada pendente e nada
+revisado.
+
 ## Treinar o modelo
 
 ```bash
