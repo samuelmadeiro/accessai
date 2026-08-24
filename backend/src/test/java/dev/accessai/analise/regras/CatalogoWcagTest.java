@@ -29,7 +29,8 @@ class CatalogoWcagTest {
 
         assertThat(criterio.titulo()).isEqualTo("Non-text Content");
         assertThat(criterio.nivel()).isEqualTo(Problema.Nivel.A);
-        assertThat(criterio.aplicabilidadeIct()).isEqualTo("direta");
+        assertThat(criterio.aplicabilidadeIct())
+                .isEqualTo(CatalogoWcag.AplicabilidadeIct.DIRETA);
         assertThat(criterio.geraViolacao()).isTrue();
     }
 
@@ -57,7 +58,7 @@ class CatalogoWcagTest {
     @Test
     @DisplayName("criterio inaplicavel a documento nao-web nao gera violacao")
     void criterioInaplicavelNaoGeraViolacao() {
-        CatalogoWcag catalogo = catalogoCom(criterio("2.4.5", "inaplicavel"));
+        CatalogoWcag catalogo = catalogoCom(criterio("2.4.5", CatalogoWcag.AplicabilidadeIct.INAPLICAVEL));
 
         assertThat(catalogo.buscar("2.4.5").geraViolacao())
                 .as("WCAG2ICT marcou como inaplicavel: vira recomendacao, nunca violacao")
@@ -67,8 +68,50 @@ class CatalogoWcagTest {
     @Test
     @DisplayName("criterio com substituicao de termo continua gerando violacao")
     void criterioComSubstituicao() {
-        assertThat(catalogoCom(criterio("2.4.2", "com_substituicao"))
+        assertThat(catalogoCom(criterio("2.4.2", CatalogoWcag.AplicabilidadeIct.COM_SUBSTITUICAO))
                 .buscar("2.4.2").geraViolacao()).isTrue();
+    }
+
+    @Test
+    @DisplayName("aplicabilidadeIct e enum fechado: valor desconhecido derruba a carga")
+    void aplicabilidadeDesconhecidaFalha() {
+        // Condicao C-1 de fase-0.md: "e um enum fechado (...) isso vira validacao
+        // no build, nao convencao". Enquanto era String livre, um valor torto
+        // carregava calado e o criterio passava a GERAR violacao — a falha ia
+        // para o lado errado.
+        String tabela = """
+                {"leiaAntes": [], "fonte": null, "criterios": [
+                  {"id": "9.9.9", "titulo": "t", "nivel": "A",
+                   "aplicabilidadeIct": "talvez", "substituicoes": [],
+                   "notaIct": "n", "resumo": "r"}]}""";
+
+        assertThatThrownBy(() -> new ObjectMapper()
+                .readValue(tabela, CatalogoWcag.Tabela.class))
+                .hasRootCauseInstanceOf(CatalogoWcag.AplicabilidadeDesconhecidaException.class)
+                .rootCause()
+                .hasMessageContaining("talvez")
+                .hasMessageContaining("C-1");
+    }
+
+    @Test
+    @DisplayName("os tres valores do enum sao aceitos, e so eles")
+    void enumFechadoTemTresValores() {
+        assertThat(CatalogoWcag.AplicabilidadeIct.values())
+                .containsExactly(CatalogoWcag.AplicabilidadeIct.DIRETA,
+                        CatalogoWcag.AplicabilidadeIct.COM_SUBSTITUICAO,
+                        CatalogoWcag.AplicabilidadeIct.INAPLICAVEL);
+    }
+
+    @Test
+    @DisplayName("todo criterio do arquivo real declara uma aplicabilidade valida")
+    void arquivoRealSoTemAplicabilidadeConhecida() {
+        // Se o arquivo ganhar um criterio novo com valor torto, este teste cai
+        // antes de a aplicacao subir com ele.
+        for (String id : List.of("1.1.1", "1.3.1", "2.4.2", "2.4.4", "3.1.1")) {
+            assertThat(catalogoReal.buscar(id).aplicabilidadeIct())
+                    .as("criterio %s", id)
+                    .isIn((Object[]) CatalogoWcag.AplicabilidadeIct.values());
+        }
     }
 
     // ------------------------------------------------------------------
@@ -84,7 +127,8 @@ class CatalogoWcagTest {
                 List.of(criterios)));
     }
 
-    static CatalogoWcag.Criterio criterio(String id, String aplicabilidade) {
+    static CatalogoWcag.Criterio criterio(String id,
+            CatalogoWcag.AplicabilidadeIct aplicabilidade) {
         return new CatalogoWcag.Criterio(id, "titulo de teste", Problema.Nivel.AA,
                 aplicabilidade, List.of(), "nota", "resumo");
     }

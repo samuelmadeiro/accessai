@@ -1,10 +1,13 @@
 package dev.accessai.analise.regras;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import dev.accessai.analise.dominio.Problema;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -106,8 +109,53 @@ public class CatalogoWcag {
         }
     }
 
+    /**
+     * Enum fechado, exigido pela condicao C-1 de {@code docs/architecture/fase-0.md}:
+     * "{@code aplicabilidadeIct} e um enum fechado: direta | com_substituicao |
+     * inaplicavel. (...) Isso vira validacao no build, nao convencao."
+     *
+     * <p>Enquanto era {@code String} livre, a validacao era so a comparacao em
+     * {@code geraViolacao()} — e ela falha para o lado ERRADO: um valor com
+     * acento, em maiuscula ou simplesmente digitado torto carregava sem reclamar
+     * e o criterio passava a gerar violacao, que e exatamente o que C-1 existe
+     * para impedir. Como enum, valor desconhecido derruba a carga da tabela e a
+     * aplicacao nao sobe.
+     */
+    public enum AplicabilidadeIct {
+        DIRETA,
+        COM_SUBSTITUICAO,
+        INAPLICAVEL;
+
+        @JsonCreator
+        public static AplicabilidadeIct de(String bruto) {
+            if (bruto == null) {
+                throw new AplicabilidadeDesconhecidaException("null");
+            }
+            try {
+                return valueOf(bruto.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                throw new AplicabilidadeDesconhecidaException(bruto);
+            }
+        }
+
+        @JsonValue
+        public String paraJson() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    public static class AplicabilidadeDesconhecidaException extends RuntimeException {
+        public AplicabilidadeDesconhecidaException(String bruto) {
+            super("aplicabilidadeIct '" + bruto + "' nao existe em " + CAMINHO
+                    + "; valores validos: " + java.util.Arrays.toString(
+                            AplicabilidadeIct.values())
+                    + " (condicao C-1 de docs/architecture/fase-0.md)");
+        }
+    }
+
     public record Criterio(String id, String titulo, Problema.Nivel nivel,
-                           String aplicabilidadeIct, List<Substituicao> substituicoes,
+                           AplicabilidadeIct aplicabilidadeIct,
+                           List<Substituicao> substituicoes,
                            String notaIct, String resumo) {
 
         public record Substituicao(String termo, String substituto) {
@@ -118,7 +166,7 @@ public class CatalogoWcag {
          * Nesse caso o achado e recomendacao, nunca violacao (CONTRIBUTING.md secao 6).
          */
         public boolean geraViolacao() {
-            return !"inaplicavel".equals(aplicabilidadeIct);
+            return aplicabilidadeIct != AplicabilidadeIct.INAPLICAVEL;
         }
     }
 

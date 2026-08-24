@@ -31,7 +31,7 @@ class MotorDeRegrasTest {
     @Test
     @DisplayName("regra que cita criterio inexistente derruba a subida da aplicacao")
     void criterioInexistenteDerrubaASubida() {
-        CatalogoWcag catalogo = catalogoCom(criterio("1.1.1", "direta"));
+        CatalogoWcag catalogo = catalogoCom(criterio("1.1.1", CatalogoWcag.AplicabilidadeIct.DIRETA));
 
         assertThatThrownBy(() -> new MotorDeRegras(
                 List.of(new RegraFalsa("REGRA_TORTA", "1.1.1.1")), catalogo))
@@ -44,7 +44,7 @@ class MotorDeRegrasTest {
         // A regra so declara o id do criterio. Quem diz que 2.4.2 e AA e a tabela.
         MotorDeRegras motor = new MotorDeRegras(
                 List.of(new RegraFalsa("REGRA_AA", "2.4.2")),
-                catalogoCom(criterio("2.4.2", "direta")));
+                catalogoCom(criterio("2.4.2", CatalogoWcag.AplicabilidadeIct.DIRETA)));
 
         List<Problema> problemas = motor.executar(ANALISE, QUALQUER, AGORA);
 
@@ -62,7 +62,7 @@ class MotorDeRegrasTest {
     void criterioInaplicavelNaoProduzProblema() {
         MotorDeRegras motor = new MotorDeRegras(
                 List.of(new RegraFalsa("REGRA_INAPLICAVEL", "2.4.5")),
-                catalogoCom(criterio("2.4.5", "inaplicavel")));
+                catalogoCom(criterio("2.4.5", CatalogoWcag.AplicabilidadeIct.INAPLICAVEL)));
 
         assertThat(motor.executar(ANALISE, QUALQUER, AGORA))
                 .as("criterio inaplicavel vira recomendacao, e recomendacao nao e problema")
@@ -83,8 +83,8 @@ class MotorDeRegrasTest {
         MotorDeRegras motor = new MotorDeRegras(
                 List.of(new RegraFalsa("A", "1.1.1"), new RegraFalsa("B", "1.3.1"),
                         new RegraFalsa("C", "3.1.1")),
-                catalogoCom(criterio("1.1.1", "direta"), criterio("1.3.1", "direta"),
-                        criterio("3.1.1", "direta")));
+                catalogoCom(criterio("1.1.1", CatalogoWcag.AplicabilidadeIct.DIRETA), criterio("1.3.1", CatalogoWcag.AplicabilidadeIct.DIRETA),
+                        criterio("3.1.1", CatalogoWcag.AplicabilidadeIct.DIRETA)));
 
         assertThat(motor.principiosAvaliados())
                 .containsExactlyInAnyOrder(PrincipioWcag.PERCEPTIVEL, PrincipioWcag.COMPREENSIVEL);
@@ -95,7 +95,7 @@ class MotorDeRegrasTest {
     void principioDeCriterioInaplicavelNaoConta() {
         MotorDeRegras motor = new MotorDeRegras(
                 List.of(new RegraFalsa("A", "1.1.1"), new RegraFalsa("B", "2.4.5")),
-                catalogoCom(criterio("1.1.1", "direta"), criterio("2.4.5", "inaplicavel")));
+                catalogoCom(criterio("1.1.1", CatalogoWcag.AplicabilidadeIct.DIRETA), criterio("2.4.5", CatalogoWcag.AplicabilidadeIct.INAPLICAVEL)));
 
         assertThat(motor.principiosAvaliados())
                 .as("regra que nunca gera violacao nao verifica nada")
