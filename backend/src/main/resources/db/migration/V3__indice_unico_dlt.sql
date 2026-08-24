@@ -1,4 +1,5 @@
 -- Um evento, um registro de DLT.
+
 --
 -- RegistroDeFalha ja verificava com existsByEventoId antes de gravar, mas isso
 -- e check-then-act: a invariante vivia so no codigo da aplicacao. Hoje o
