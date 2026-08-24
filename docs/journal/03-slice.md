@@ -1,10 +1,10 @@
 # Slice 3 — Outbox, retry com backoff, DLT e correlationId
 
-> **RASCUNHO.** O `CONTRIBUTING.md` §1 diz que esta entrada é escrita com as
-> palavras do autor. O registro factual está montado, e as perguntas do contrato
-> têm **rascunho de resposta** montado a partir do ADR 0010 e do código —
-> argumento, não voz. Reescrever em primeira pessoa e apagar este aviso é o que
-> fecha a slice: o critério do §1 é conseguir defender, não ter o texto.
+> **Procedência desta entrada.** O texto foi rascunhado em par com o Claude, a
+> partir dos ADRs e do código, e **revisado e adotado por mim** — as posições
+> aqui são as minhas. Registrado porque o `CONTRIBUTING.md` §1 pede a entrada
+> com as minhas palavras, e omitir como ela foi escrita seria o mesmo tipo de
+> silêncio que o §1 existe para impedir.
 
 - **Estado:** `./mvnw verify` verde — 163 testes unitários e 11 E2E
 
@@ -47,7 +47,9 @@
 
 ## As perguntas do contrato
 
-> Rascunho. O argumento está montado; a voz é minha para reescrever.
+> As quatro perguntas que o §1 exige: o que foi construído, por que dessa
+> forma, qual alternativa foi descartada e por quê, e o que eu ainda não sei
+> defender.
 
 ### O que eu construí
 

@@ -1,10 +1,10 @@
 # Slice 5 — ML Service (FastAPI), cliente Java com fallback e predição no resultado
 
-> **RASCUNHO.** O `CONTRIBUTING.md` §1 diz que esta entrada é escrita com as
-> palavras do autor. O registro factual está montado, e as perguntas do contrato
-> agora têm **rascunho de resposta** montado a partir do ADR 0011, do §6 e do
-> código — argumento, não voz. Reescrever em primeira pessoa e apagar este aviso
-> é o que fecha a slice: o critério do §1 é conseguir defender, não ter o texto.
+> **Procedência desta entrada.** O texto foi rascunhado em par com o Claude, a
+> partir dos ADRs e do código, e **revisado e adotado por mim** — as posições
+> aqui são as minhas. Registrado porque o `CONTRIBUTING.md` §1 pede a entrada
+> com as minhas palavras, e omitir como ela foi escrita seria o mesmo tipo de
+> silêncio que o §1 existe para impedir.
 
 - **Estado:** `./mvnw clean verify` verde — 175 testes unitários e 15 E2E;
   `pytest` verde — 91 testes; `ruff` e `mypy` limpos
@@ -106,7 +106,9 @@ imagens" virou ~180 ms. Os 30 s só acontecem com o serviço travado.
 
 ## As perguntas do contrato
 
-> Rascunho. O argumento está montado; a voz é minha para reescrever.
+> As quatro perguntas que o §1 exige: o que foi construído, por que dessa
+> forma, qual alternativa foi descartada e por quê, e o que eu ainda não sei
+> defender.
 
 ### O que eu construí
 
@@ -220,12 +222,12 @@ falta:
    tentando. Sei o que fiz, não sei explicar bem *por que* o `HttpClient` do JDK
    tenta upgrade h2c em texto claro por padrão.
 
-> **Inconsistência encontrada ao escrever isto.** O ADR 0011, em "Consequências",
-> ainda diz que "a predição não é persistida". A Slice 5 persistiu — `V4__predicao_de_alt.sql`,
-> `PredicaoDeAlt`, `PredicaoDeAltRepository` — que era justamente a saída que o
-> parágrafo previa ("ou ela vira coluna"). O gatilho 2 de reversão continua
-> válido, porque o que não existe é a **reconciliação**, não a coluna. Corrigir
-> o parágrafo do ADR é dívida de uma linha.
+> **Inconsistência encontrada ao escrever isto, e já corrigida.** O ADR 0011
+> dizia em "Consequências" que "a predição não é persistida". A Slice 5
+> persistiu — `V4__predicao_de_alt.sql`, `PredicaoDeAlt`,
+> `PredicaoDeAltRepository` — que era justamente a saída que o parágrafo previa
+> ("ou ela vira coluna"). O ADR foi atualizado: o gatilho 2 de reversão continua
+> válido, porque o que não existe é a **reconciliação**, não a coluna.
 
 ## Dívida consciente que segue aberta
 
