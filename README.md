@@ -398,7 +398,7 @@ docs/
   adr/                     uma decisão por arquivo (0001–0011)
   architecture/fase-0.md   decisões D1–D6 e condições C-1 a C-3
   wcag/criteria.json       tabela versionada de critérios
-  journal/01-slice.md      diário da Slice 1
+  journal/NN-slice.md      diário por slice (01 a 05)
 scripts/     coleta do corpus
 ```
 

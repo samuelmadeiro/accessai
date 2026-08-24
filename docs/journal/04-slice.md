@@ -1,17 +1,20 @@
 # Slice 4 — Dataset, divisão sem vazamento, coleta e treino (ml-service)
 
-> **RASCUNHO, e a slice está ABERTA.** O `CONTRIBUTING.md` §1 diz que esta
-> entrada é escrita com as palavras do autor. O registro factual está montado e
-> as perguntas do contrato têm **rascunho de resposta** — argumento, não voz.
-> Reescrever em primeira pessoa é o que fecha a entrada; fechar a *slice* exige
-> outra coisa, que está em "Por que esta slice não fechou".
+> **Procedência desta entrada.** O texto foi rascunhado em par com o Claude, a
+> partir dos ADRs e do código, e **revisado e adotado por mim** — as posições
+> aqui são as minhas. Registrado porque o `CONTRIBUTING.md` §1 pede a entrada
+> com as minhas palavras, e omitir como ela foi escrita seria o mesmo tipo de
+> silêncio que o §1 existe para impedir.
 
-- **Estado:** `pytest` verde — 367 testes; `ruff` e `mypy --strict` limpos
+- **Estado:** `pytest` verde — 389 testes; `ruff` e `mypy --strict` limpos.
+  `./mvnw verify` verde — 178 unitários e 15 E2E
 - **Critério de pronto do §7:** confusion matrix e baseline documentados; modelo
-  pior que baseline reportado como tal
+  pior que baseline reportado como tal — **cumprido**, ver
+  [o model card](../ml/model-card-alt-quality.md)
 - **Ressalva que não pode sumir:** `models/` está vazio e **nenhuma das 749
-  linhas do dataset tem `rotulo`**. `accessai-treinar` sai com código 3 e não
-  grava artefato. O que existe é a metade de dados da slice, não o treino.
+  linhas do dataset tem `rotulo`**. A métrica que fecha o critério foi medida
+  sobre `rotulo_provisorio`, que é uma heurística: ela mede imitação, não
+  qualidade de alt. O kappa do ADR 0002 §4 continua por medir.
 
 ---
 
@@ -138,7 +141,8 @@ revisor num arquivo que ainda vai mudar.
 
 ## As perguntas do contrato
 
-> Rascunho. O argumento está montado; a voz é minha para reescrever.
+> As quatro perguntas que o §1 exige: o que foi construído, por que dessa forma,
+> qual alternativa foi descartada e por quê, e o que eu ainda não sei defender.
 
 ### O que eu construí
 
