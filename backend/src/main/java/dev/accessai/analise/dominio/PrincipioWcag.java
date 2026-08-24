@@ -1,5 +1,7 @@
 package dev.accessai.analise.dominio;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Os quatro principios da WCAG: Perceptivel, Operavel, Compreensivel, Robusto.
  *
@@ -34,7 +36,7 @@ public enum PrincipioWcag {
      *         criterio fora da WCAG nao tem principio, e inventar um colocaria
      *         penalidade numa categoria errada sem ninguem perceber
      */
-    public static PrincipioWcag doCriterio(String criterioId) {
+    public static @NonNull PrincipioWcag doCriterio(String criterioId) {
         if (criterioId != null && !criterioId.isBlank()) {
             char primeiro = criterioId.charAt(0);
             for (PrincipioWcag principio : values()) {

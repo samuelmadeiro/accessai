@@ -6,6 +6,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.jspecify.annotations.NonNull;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -73,9 +75,9 @@ public class Problema {
         this.criadoEm = criadoEm;
     }
 
-    public static Problema registrar(UUID analiseId, String regraId, String criterioWcag,
-                                     Nivel nivelWcag, Severidade severidade, String partePacote,
-                                     String evidencia, Instant agora) {
+    public static @NonNull Problema registrar(UUID analiseId, String regraId, String criterioWcag,
+                                              Nivel nivelWcag, Severidade severidade, String partePacote,
+                                              String evidencia, Instant agora) { //Aqui o problema pode receber elementos nulos, porem nao pode retornar nulo
         return new Problema(UUID.randomUUID(), analiseId, regraId, criterioWcag, nivelWcag,
                 severidade, partePacote, evidencia, agora);
     }

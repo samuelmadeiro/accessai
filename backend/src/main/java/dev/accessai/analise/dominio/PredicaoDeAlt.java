@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.jspecify.annotations.NonNull;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -78,10 +80,10 @@ public class PredicaoDeAlt {
         this.criadoEm = criadoEm;
     }
 
-    public static PredicaoDeAlt de(UUID analiseId, int indice, String partePacote,
-                                   String nomeImagem, String alt, String categoria,
-                                   Double confianca, boolean usouHeuristica,
-                                   String modeloVersao, Instant agora) {
+    public static @NonNull PredicaoDeAlt de(UUID analiseId, int indice, String partePacote,
+                                            String nomeImagem, String alt, String categoria,
+                                            Double confianca, boolean usouHeuristica,
+                                            String modeloVersao, Instant agora) {
         return new PredicaoDeAlt(UUID.randomUUID(), analiseId, indice, partePacote,
                 nomeImagem, alt, categoria,
                 // A restricao do banco recusa confianca vinda de heuristica; o

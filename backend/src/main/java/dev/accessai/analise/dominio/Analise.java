@@ -6,6 +6,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.jspecify.annotations.NonNull;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -49,9 +51,8 @@ public class Analise {
     @Column(name = "atualizada_em", nullable = false)
     private Instant atualizadaEm;
 
-    protected Analise() {
-        // exigido pelo JPA
-    }
+    protected Analise() {// exigido pelo JPA
+         }
 
     private Analise(UUID id, UUID correlationId, String nomeArquivo, String tipoMimeDetectado,
                     long tamanhoBytes, String sha256, Instant agora) {
@@ -66,8 +67,8 @@ public class Analise {
         this.atualizadaEm = agora;
     }
 
-    public static Analise receber(UUID correlationId, String nomeArquivo, String tipoMimeDetectado,
-                                  long tamanhoBytes, String sha256, Instant agora) {
+    public static @NonNull Analise receber(UUID correlationId, String nomeArquivo, String tipoMimeDetectado,
+                                           long tamanhoBytes, String sha256, Instant agora) {
         return new Analise(UUID.randomUUID(), correlationId, nomeArquivo, tipoMimeDetectado,
                 tamanhoBytes, sha256, agora);
     }

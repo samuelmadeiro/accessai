@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.jspecify.annotations.NonNull;
+
 import java.util.UUID;
 
 /**
@@ -42,11 +44,11 @@ public class DocumentoBinario {
         this.conteudo = conteudo;
     }
 
-    public static DocumentoBinario de(UUID analiseId, byte[] conteudo) {
+    public static @NonNull DocumentoBinario de(UUID analiseId, byte @NonNull [] conteudo) {
         return new DocumentoBinario(analiseId, conteudo.clone());
     }
 
-    public UUID getAnaliseId() {
+      public UUID getAnaliseId() {
         return analiseId;
     }
 

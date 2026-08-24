@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.jspecify.annotations.NonNull;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -41,8 +43,8 @@ public class EventoProcessado {
         this.processadoEm = processadoEm;
     }
 
-    public static EventoProcessado de(UUID eventoId, String consumidor, Instant agora) {
-        return new EventoProcessado(eventoId, consumidor, agora);
+    public static @NonNull EventoProcessado de(UUID eventoId, String consumidor, Instant agora) {
+        return new EventoProcessado(eventoId, consumidor, agora);//retornando novo evento processado
     }
 
     public UUID getEventoId() {

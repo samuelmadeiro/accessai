@@ -14,13 +14,13 @@ public enum SituacaoAnalise {
     RECEBIDA,
     PROCESSANDO,
     CONCLUIDA,
-    FALHOU;
+    FALHOU;//aqui através dos enums verifica as etapas do
 
     private static final Set<SituacaoAnalise> TERMINAIS = Set.of(CONCLUIDA, FALHOU);
 
     public boolean podeIrPara(SituacaoAnalise destino) {
         return switch (this) {
-            case RECEBIDA -> destino == PROCESSANDO || destino == FALHOU;
+            case RECEBIDA -> destino == PROCESSANDO || destino == FALHOU;//verificando se foi recebida
             case PROCESSANDO -> TERMINAIS.contains(destino);
             case CONCLUIDA, FALHOU -> false;
         };
