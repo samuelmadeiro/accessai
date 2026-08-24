@@ -71,9 +71,15 @@ conexao recusada, 500, corpo malformado.
 - **Contradiz o contrato escrito.** Alguem que leia so o `CONTRIBUTING.md` vai
   procurar um consumidor Kafka em `ml-service/` e nao vai achar. Este ADR e o
   unico lugar onde os dois se conciliam.
-- **A predicao nao e persistida.** Ela existe durante o processamento e some. Ao
-  fiar no fluxo, ou ela vira coluna, ou toda releitura da analise precisa chamar
-  o Python de novo.
+- ~~**A predicao nao e persistida.**~~ **Resolvido na propria Slice 5, pela saida
+  que este paragrafo previa: ela virou coluna.** `V4__predicao_de_alt.sql`,
+  `PredicaoDeAlt` e `PredicaoDeAltRepository` gravam a predicao junto com a
+  analise, e o `GET` le do banco em vez de chamar o Python de novo.
+
+  Isso **nao** dispara o gatilho 2 de reversao: o que falta ali e a
+  reconciliacao entre uma predicao que chega depois e uma analise ja concluida,
+  que so existe no desenho por evento. Com a chamada sincrona, predicao e
+  analise sao gravadas no mesmo fluxo e nao ha o que reconciliar.
 
 ## Quando reverter
 

@@ -198,6 +198,21 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 > p99 de 7 ms pela heurística e 9 ms com modelo carregado, contra um
 > timeout de 1500 ms (`ml-service/README.md`).
 
+> **A Slice 5 foi entregue antes de a Slice 4 fechar, e a 4 fecha pela metade.**
+> O critério de pronto da 4 — confusion matrix e baseline documentados, modelo
+> pior que baseline reportado como tal — está cumprido em
+> `docs/ml/model-card-alt-quality.md`. Mas cumprido sobre `rotulo_provisorio`,
+> que é a saída de uma heurística: a métrica mede imitação, não qualidade de
+> alt. O ADR 0002 §4 pede kappa de Cohen contra revisão humana em 150 amostras,
+> e isso não aconteceu — `rotulo` segue nulo nas 749 linhas.
+>
+> Duas consequências que valem mais que o número: o modelo **não detecta
+> `INSUFFICIENT`** (F1 = 0,000, com n=1 em validação e n=1 em teste), e o
+> artefato **não é exportado** — `models/` continua vazio de propósito, porque
+> um `.joblib` ali faria a Slice 5 responder `usouHeuristica: false` para
+> heurística imitada. Enquanto isso não muda, toda predição declara `true`, que
+> é o que impede a canalização de se passar por modelo.
+
 Regra: **um slice por vez, commitado e verde antes do próximo.** Se eu pedir
 para pular, me lembre desta linha.
 
