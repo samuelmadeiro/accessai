@@ -242,11 +242,39 @@ python -m accessai_ml.training.train --dataset data/alt_texts.jsonl
 ```
 
 **Hoje isso sai com código 3 e não escreve nada**, porque o dataset tem zero
-amostras rotuladas. É o comportamento correto: um pipeline que segue em frente
-com zero amostra grava um `.joblib` que parece modelo e reporta métrica de nada.
+amostras com `rotulo`. É o comportamento correto: um pipeline que segue em
+frente com zero amostra grava um `.joblib` que parece modelo e reporta métrica
+de nada.
 
 Códigos de saída: `0` sucesso, `3` dataset inválido ou sem rótulo, `5` o modelo
 não superou os baselines (o artefato **não** é exportado).
+
+### `--rotulo-de-trabalho`: de que coluna sai o rótulo
+
+```bash
+accessai-treinar --dataset data/alt_texts.jsonl --rotulo-de-trabalho provisorio
+```
+
+| Valor | Lê | O que a métrica significa |
+|---|---|---|
+| `humano` (padrão) | `rotulo` | qualidade de alt — **a métrica do ADR 0002** |
+| `provisorio` | `rotulo_provisorio` | se o classificador **imita** a heurística `pre_rotular` |
+
+O caminho `provisorio` existe para exercer o pipeline inteiro — treino,
+baselines, matriz de confusão, veredito — antes de a revisão humana acontecer.
+O rótulo **é** a heurística, então o número não diz nada sobre detecção de alt
+ruim. A procedência viaja para o `training_report.json` e para dentro do
+`.joblib`, em `rotulo_de_trabalho`, com a ressalva junto.
+
+**Modelo treinado sobre pré-rótulo não é exportado.** O ML Service carrega
+`models/` na subida, e um artefato ali faria toda a Slice 5 responder
+`usouHeuristica: false` para uma predição que é heurística imitada. A recusa vem
+**antes** da comparação com baseline — modelo que supera o baseline e foi
+treinado sobre pré-rótulo é o caso mais perigoso, porque passa no critério
+numérico. `--exportar-sem-revisao` força, para inspeção.
+
+Os resultados desse caminho, com a leitura do que eles significam e do que não
+significam, estão em [`docs/ml/model-card-alt-quality.md`](../docs/ml/model-card-alt-quality.md).
 
 ### Validação cruzada
 

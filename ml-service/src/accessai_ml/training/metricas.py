@@ -16,6 +16,16 @@ from sklearn.metrics import (
 # rara aqui e justamente o alt ruim, que e o que o produto precisa detectar.
 METRICA_PRINCIPAL = "f1_macro"
 
+# `fase-0.md` D2 nomeia tres coisas como metrica de decisao, nao uma: macro-F1,
+# matriz de confusao E recall da classe minoritaria. A terceira e a que o
+# projeto existe para acertar — a classe rara aqui e o alt ruim, que e o que o
+# produto precisa detectar. Deixa-la escondida dentro de `por_classe` faz a
+# macro-F1 ser lida como resumo quando ela pode estar carregando um zero.
+#
+# Abaixo deste suporte, o recall da classe nao mede nada: com 1 amostra ele so
+# pode ser 0.0 ou 1.0, e qualquer um dos dois seria lido como resultado.
+MINIMO_PARA_MEDIR_CLASSE = 5
+
 
 class Preditor(Protocol):
     def predict(self, X: list[str]) -> Any: ...  # noqa: N803
@@ -48,6 +58,46 @@ def avaliar(preditor: Preditor, textos: list[str], verdadeiros: list[str],
                 confusion_matrix(verdadeiros, previstos, labels=rotulos).tolist(),
         },
     }
+
+
+def recall_da_classe_minoritaria(avaliacao: dict[str, Any],
+                                 rotulos: list[str]) -> dict[str, Any]:
+    """Recall da classe menos representada no conjunto avaliado.
+
+    A classe minoritaria e descoberta pelo SUPORTE do conjunto avaliado, nao
+    fixada em `INSUFFICIENT`: quando o corpus crescer, a classe rara pode mudar,
+    e um nome cravado aqui apontaria para a classe errada em silencio.
+
+    Devolve `avaliavel: False` quando o suporte e pequeno demais para o numero
+    significar algo. Isso NAO e um detalhe de apresentacao — e a diferenca entre
+    "o modelo nao detecta a classe" e "existia uma amostra e ele errou".
+    """
+    por_classe = avaliacao["por_classe"]
+    presentes = {r: por_classe[r] for r in rotulos if r in por_classe}
+    if not presentes:
+        return {"avaliavel": False, "motivo": "nenhuma classe no conjunto avaliado"}
+
+    classe = min(presentes, key=lambda r: (presentes[r]["support"], r))
+    suporte = int(presentes[classe]["support"])
+    avaliavel = suporte >= MINIMO_PARA_MEDIR_CLASSE
+
+    bloco: dict[str, Any] = {
+        "classe": classe,
+        "recall": float(presentes[classe]["recall"]),
+        "precision": float(presentes[classe]["precision"]),
+        "f1": float(presentes[classe]["f1-score"]),
+        "suporte": suporte,
+        "minimo_para_medir": MINIMO_PARA_MEDIR_CLASSE,
+        "avaliavel": avaliavel,
+    }
+    if not avaliavel:
+        bloco["motivo"] = (
+            f"{suporte} amostra(s) de {classe} no conjunto avaliado, abaixo do "
+            f"minimo de {MINIMO_PARA_MEDIR_CLASSE}. O recall aqui e ruido: com "
+            "esse suporte ele so pode assumir poucos valores, e qualquer um "
+            "deles seria lido como resultado. A macro-F1 ao lado carrega esse "
+            "ruido em um terco do seu valor.")
+    return bloco
 
 
 def f1_macro(preditor: Preditor, textos: list[str], verdadeiros: list[str],

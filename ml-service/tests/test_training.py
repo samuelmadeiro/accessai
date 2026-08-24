@@ -54,7 +54,8 @@ SINTETICOS: list[tuple[str, str]] = [
 
 def escrever_dataset(caminho: pathlib.Path,
                      amostras: list[tuple[str, str]] | None = None,
-                     rotular: bool = True) -> pathlib.Path:
+                     rotular: bool = True,
+                     provisorio: bool = True) -> pathlib.Path:
     """Escreve um JSONL no mesmo formato que `accessai_ml.dataset` produz."""
     caminho.parent.mkdir(parents=True, exist_ok=True)
     chaves = [divisao.chave_de_agrupamento(texto, "sintetico.docx")
@@ -71,6 +72,9 @@ def escrever_dataset(caminho: pathlib.Path,
                 "tem_alt": True,
                 "grupo": grupo,
                 "divisao": particao.parte_de(grupo),
+                # As duas colunas coexistem no dataset real: o coletor grava o
+                # pre-rotulo, e `rotulo` so aparece depois da revisao humana.
+                "rotulo_provisorio": rotulo if provisorio else None,
                 "rotulo": rotulo if rotular else None,
             }, ensure_ascii=False) + "\n")
     return caminho
@@ -82,7 +86,7 @@ def test_dataset_sem_rotulo_e_recusado(tmp_path):
     # Estado real do projeto hoje. Treinar assim produziria metrica de nada.
     caminho = escrever_dataset(tmp_path / "vazio.jsonl", rotular=False)
 
-    with pytest.raises(dados.DatasetInvalidoError, match="NENHUMA rotulada"):
+    with pytest.raises(dados.DatasetInvalidoError, match="NENHUMA com rotulo"):
         dados.carregar(caminho)
 
 
@@ -394,3 +398,223 @@ def test_carga_marca_a_amostra_sintetica(tmp_path):
 
     assert gerada and gerada[0].sintetica is True
     assert all(not a.sintetica for a in conjuntos.treino if a.id != "sintetico:abc")
+
+
+# ------------------------------------------- rotulo de trabalho (Slice 4)
+
+def test_carga_com_pre_rotulo_treina_o_que_o_humano_ainda_nao_rotulou(tmp_path):
+    # Estado real do dataset: 749 linhas com `rotulo_provisorio`, zero com
+    # `rotulo`. O caminho `humano` recusa; o `provisorio` roda e declara.
+    caminho = escrever_dataset(tmp_path / "d.jsonl", rotular=False)
+
+    with pytest.raises(dados.DatasetInvalidoError, match="NENHUMA com rotulo"):
+        dados.carregar(caminho)
+
+    conjuntos = dados.carregar(caminho, dados.ROTULO_PROVISORIO)
+    assert conjuntos.total == len(SINTETICOS)
+
+
+def test_recusa_do_caminho_humano_aponta_as_duas_saidas(tmp_path):
+    caminho = escrever_dataset(tmp_path / "d.jsonl", rotular=False)
+
+    with pytest.raises(dados.DatasetInvalidoError) as erro:
+        dados.carregar(caminho)
+
+    # A mensagem precisa dizer o que fazer, e as duas opcoes nao sao
+    # equivalentes: uma produz metrica do ADR, a outra produz metrica de
+    # imitacao. Quem le tem que sair sabendo disso.
+    assert "accessai-revisar" in str(erro.value)
+    assert "imitacao da heuristica" in str(erro.value)
+
+
+def test_dataset_sem_nenhuma_das_duas_colunas_e_recusado(tmp_path):
+    caminho = escrever_dataset(tmp_path / "d.jsonl", rotular=False,
+                               provisorio=False)
+
+    with pytest.raises(dados.DatasetInvalidoError,
+                       match="NENHUMA com rotulo_provisorio"):
+        dados.carregar(caminho, dados.ROTULO_PROVISORIO)
+
+
+@pytest.mark.parametrize("invalido", ["llm", "heuristica", "", "HUMANO"])
+def test_rotulo_de_trabalho_desconhecido_e_recusado(tmp_path, invalido):
+    caminho = escrever_dataset(tmp_path / "d.jsonl")
+
+    with pytest.raises(dados.DatasetInvalidoError, match="fora de"):
+        dados.carregar(caminho, invalido)
+
+
+@pytest.mark.parametrize(("de_trabalho", "vale"), [
+    (dados.ROTULO_HUMANO, True),
+    (dados.ROTULO_PROVISORIO, False),
+])
+def test_relatorio_declara_a_procedencia_do_rotulo(tmp_path, de_trabalho, vale):
+    caminho = escrever_dataset(tmp_path / "d.jsonl")
+    relatorio = tmp_path / "rel.json"
+
+    train.main(["--dataset", str(caminho), "--modelos", str(tmp_path / "models"),
+                "--relatorio", str(relatorio),
+                "--rotulo-de-trabalho", de_trabalho,
+                "--exportar-pior-que-baseline", "--exportar-sem-revisao"])
+
+    bloco = json.loads(relatorio.read_text(encoding="utf-8"))["rotulo_de_trabalho"]
+    assert bloco["origem"] == de_trabalho
+    assert bloco["campo"] == dados.CAMPO_DO_ROTULO[de_trabalho]
+    assert bloco["vale_para_o_adr0002"] is vale
+    assert bloco["ressalva"]
+
+
+def test_pre_rotulo_nao_exporta_artefato_mesmo_superando_o_baseline(tmp_path,
+                                                                    capsys):
+    # O caso perigoso: passa no criterio numerico e mesmo assim nao pode ser
+    # servido. `models/` alimenta o ML Service, que passaria a responder
+    # `usouHeuristica: false` para heuristica imitada.
+    caminho = escrever_dataset(tmp_path / "d.jsonl")
+    modelos = tmp_path / "models"
+
+    codigo = train.main(["--dataset", str(caminho), "--modelos", str(modelos),
+                         "--relatorio", str(tmp_path / "rel.json"),
+                         "--rotulo-de-trabalho", dados.ROTULO_PROVISORIO,
+                         "--exportar-pior-que-baseline"])
+
+    assert codigo == train.SAIDA_OK
+    assert not (modelos / train.NOME_DO_ARTEFATO).exists()
+    erro = capsys.readouterr().err
+    assert "artefato NAO exportado" in erro
+    assert "usouHeuristica" in erro
+
+
+def test_pre_rotulo_avisa_na_saida_de_erro(tmp_path, capsys):
+    caminho = escrever_dataset(tmp_path / "d.jsonl")
+
+    train.main(["--dataset", str(caminho), "--modelos", str(tmp_path / "models"),
+                "--relatorio", str(tmp_path / "rel.json"),
+                "--rotulo-de-trabalho", dados.ROTULO_PROVISORIO])
+
+    erro = capsys.readouterr().err
+    assert "PRE-ROTULO DETERMINISTICO" in erro
+    assert "ADR 0002" in erro
+
+
+def test_flag_explicita_libera_a_exportacao_do_pre_rotulo(tmp_path):
+    caminho = escrever_dataset(tmp_path / "d.jsonl")
+    modelos = tmp_path / "models"
+
+    codigo = train.main(["--dataset", str(caminho), "--modelos", str(modelos),
+                         "--relatorio", str(tmp_path / "rel.json"),
+                         "--rotulo-de-trabalho", dados.ROTULO_PROVISORIO,
+                         "--exportar-pior-que-baseline",
+                         "--exportar-sem-revisao"])
+
+    assert codigo == train.SAIDA_OK
+    artefato = joblib.load(modelos / train.NOME_DO_ARTEFATO)
+    # A procedencia viaja para dentro do .joblib: quem achar o arquivo solto
+    # seis meses depois consegue descobrir sobre que rotulo ele foi treinado.
+    procedencia = artefato["metadados"]["rotulo_de_trabalho"]
+    assert procedencia["origem"] == dados.ROTULO_PROVISORIO
+    assert procedencia["vale_para_o_adr0002"] is False
+
+
+def test_caminho_humano_continua_sendo_o_padrao(tmp_path):
+    caminho = escrever_dataset(tmp_path / "d.jsonl")
+    modelos = tmp_path / "models"
+
+    train.main(["--dataset", str(caminho), "--modelos", str(modelos),
+                "--relatorio", str(tmp_path / "rel.json"),
+                "--exportar-pior-que-baseline"])
+
+    artefato = joblib.load(modelos / train.NOME_DO_ARTEFATO)
+    assert artefato["metadados"]["rotulo_de_trabalho"]["origem"] == \
+        dados.ROTULO_HUMANO
+
+
+# --------------------------- recall da classe minoritaria (fase-0.md D2)
+
+def _avaliacao(por_classe: dict) -> dict:
+    return {"por_classe": por_classe}
+
+
+def test_classe_minoritaria_sai_pelo_suporte_e_nao_por_nome_fixo():
+    # Se a classe rara mudar quando o corpus crescer, um nome cravado no codigo
+    # apontaria para a classe errada sem ninguem perceber.
+    avaliacao = _avaliacao({
+        BOM: {"precision": 0.9, "recall": 0.9, "f1-score": 0.9, "support": 80},
+        FRACO: {"precision": 0.4, "recall": 0.3, "f1-score": 0.34, "support": 6},
+        INSUFICIENTE: {"precision": 0.8, "recall": 0.7, "f1-score": 0.75,
+                       "support": 40},
+    })
+
+    bloco = metricas.recall_da_classe_minoritaria(
+        avaliacao, [BOM, FRACO, INSUFICIENTE])
+
+    assert bloco["classe"] == FRACO
+    assert bloco["suporte"] == 6
+    assert bloco["avaliavel"] is True
+    assert bloco["recall"] == pytest.approx(0.3)
+
+
+@pytest.mark.parametrize("suporte", [0, 1, 2, 4])
+def test_suporte_pequeno_marca_a_classe_como_nao_avaliavel(suporte):
+    # O caso do dataset real: uma unica amostra INSUFFICIENT fora do treino.
+    # Recall 0.0 ali significa "errou a unica que existia", nao "nao detecta".
+    avaliacao = _avaliacao({
+        BOM: {"precision": 0.9, "recall": 0.9, "f1-score": 0.9, "support": 79},
+        FRACO: {"precision": 0.6, "recall": 0.7, "f1-score": 0.65, "support": 35},
+        INSUFICIENTE: {"precision": 0.0, "recall": 0.0, "f1-score": 0.0,
+                       "support": suporte},
+    })
+
+    bloco = metricas.recall_da_classe_minoritaria(
+        avaliacao, [BOM, FRACO, INSUFICIENTE])
+
+    assert bloco["classe"] == INSUFICIENTE
+    assert bloco["avaliavel"] is False
+    assert str(suporte) in bloco["motivo"]
+    assert "ruido" in bloco["motivo"]
+
+
+def test_suporte_no_limite_e_avaliavel():
+    avaliacao = _avaliacao({
+        BOM: {"precision": 0.9, "recall": 0.9, "f1-score": 0.9, "support": 50},
+        INSUFICIENTE: {"precision": 0.5, "recall": 0.4, "f1-score": 0.44,
+                       "support": metricas.MINIMO_PARA_MEDIR_CLASSE},
+    })
+
+    bloco = metricas.recall_da_classe_minoritaria(avaliacao, [BOM, INSUFICIENTE])
+
+    assert bloco["avaliavel"] is True
+
+
+def test_conjunto_sem_classe_conhecida_nao_estoura():
+    bloco = metricas.recall_da_classe_minoritaria(_avaliacao({}), [BOM])
+
+    assert bloco["avaliavel"] is False
+    assert "nenhuma classe" in bloco["motivo"]
+
+
+def test_veredito_carrega_a_classe_minoritaria(tmp_path):
+    conjuntos = dados.carregar(escrever_dataset(tmp_path / "d.jsonl"))
+
+    resultado = train.treinar(conjuntos, c=1.0, semente=42)
+    bloco = resultado["veredito"]["classe_minoritaria"]
+
+    assert bloco["classe"] in (BOM, FRACO, INSUFICIENTE)
+    assert "suporte" in bloco
+    assert "avaliavel" in bloco
+
+
+def test_cli_avisa_quando_a_classe_minoritaria_nao_e_avaliavel(tmp_path, capsys):
+    # Corpus com uma unica amostra da classe rara fora do treino — a forma exata
+    # do dataset real.
+    raras = [("IMG_0421.jpg", INSUFICIENTE), ("image1.png", INSUFICIENTE),
+             ("figura", INSUFICIENTE), ("foto", INSUFICIENTE),
+             ("imagem", INSUFICIENTE)]
+    amostras = [*[(t, r) for t, r in SINTETICOS if r != INSUFICIENTE], *raras]
+    caminho = escrever_dataset(tmp_path / "d.jsonl", amostras)
+
+    train.main(["--dataset", str(caminho), "--modelos", str(tmp_path / "models"),
+                "--relatorio", str(tmp_path / "rel.json"),
+                "--exportar-pior-que-baseline"])
+
+    erro = capsys.readouterr().err
+    assert "classe minoritaria nao avaliavel" in erro

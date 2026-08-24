@@ -5,6 +5,10 @@ ninguem rotulou ainda. Este modulo le o mesmo formato e separa o que TEM rotulo,
 respeitando a coluna `divisao` — que ja foi calculada com a chave de
 deduplicacao semantica de `dataset.divisao`.
 
+Duas colunas podem servir de rotulo, e a diferenca entre elas e a diferenca
+entre uma metrica que significa alguma coisa e uma que nao significa. Ver
+`ROTULOS_DE_TRABALHO` abaixo.
+
 Reaproveitar a coluna, em vez de re-sortear aqui, e o que garante que a protecao
 contra vazamento sobreviva: um `train_test_split` neste ponto jogaria fora o
 agrupamento por alt normalizado e devolveria o vazamento pela porta dos fundos.
@@ -32,6 +36,25 @@ class DatasetInvalidoError(Exception):
 
 
 ORIGEM_SINTETICA = "sintetico_fallback"
+
+# De que campo sai o rotulo usado no treino.
+#
+# `humano` e o padrao e o unico que produz metrica no sentido do ADR 0002: le
+# `rotulo`, que so e preenchido por `dataset.revisao` depois de alguem julgar a
+# amostra.
+#
+# `provisorio` le `rotulo_provisorio`, que e o palpite deterministico do
+# coletor. Ele existe para que o pipeline inteiro — treino, baselines, matriz de
+# confusao, veredito — possa ser exercido ANTES de a revisao humana acontecer.
+# O numero que sai dali mede se o classificador consegue imitar uma heuristica,
+# nao se ele detecta alt ruim: o rotulo E a heuristica. Por isso a escolha viaja
+# ate o relatorio e ate o metadado do artefato, em vez de ficar so na linha de
+# comando de quem rodou.
+ROTULO_HUMANO = "humano"
+ROTULO_PROVISORIO = "provisorio"
+ROTULOS_DE_TRABALHO = (ROTULO_HUMANO, ROTULO_PROVISORIO)
+
+CAMPO_DO_ROTULO = {ROTULO_HUMANO: "rotulo", ROTULO_PROVISORIO: "rotulo_provisorio"}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -69,14 +92,16 @@ class Conjuntos:
         return [a.rotulo for a in parte]
 
 
-def _linha_para_amostra(linha: dict[str, Any], numero: int) -> Amostra | None:
+def _linha_para_amostra(linha: dict[str, Any], numero: int,
+                        de_trabalho: str = ROTULO_HUMANO) -> Amostra | None:
     """Converte uma linha do JSONL. Devolve None quando ela nao e treinavel."""
-    rotulo = linha.get("rotulo")
+    campo = CAMPO_DO_ROTULO[de_trabalho]
+    rotulo = linha.get(campo)
     if rotulo is None:
         return None
     if rotulo not in ROTULOS_VALIDOS:
         raise DatasetInvalidoError(
-            f"linha {numero}: rotulo {rotulo!r} fora de {ROTULOS_VALIDOS}. "
+            f"linha {numero}: {campo} {rotulo!r} fora de {ROTULOS_VALIDOS}. "
             "Rotulo desconhecido em silencio vira classe fantasma no treino.")
 
     texto = (linha.get("alt") or "").strip()
@@ -98,8 +123,12 @@ def _linha_para_amostra(linha: dict[str, Any], numero: int) -> Amostra | None:
                    sintetica=linha.get("origem_do_dado") == ORIGEM_SINTETICA)
 
 
-def carregar(caminho: pathlib.Path) -> Conjuntos:
+def carregar(caminho: pathlib.Path,
+             de_trabalho: str = ROTULO_HUMANO) -> Conjuntos:
     """Le o JSONL e separa por divisao. Levanta quando nao da para treinar."""
+    if de_trabalho not in ROTULOS_DE_TRABALHO:
+        raise DatasetInvalidoError(
+            f"rotulo de trabalho {de_trabalho!r} fora de {ROTULOS_DE_TRABALHO}.")
     if not caminho.exists():
         raise DatasetInvalidoError(
             f"dataset ausente em {caminho}. Rode `accessai_ml.dataset.cli` antes.")
@@ -118,7 +147,7 @@ def carregar(caminho: pathlib.Path) -> Conjuntos:
             except json.JSONDecodeError as erro:
                 raise DatasetInvalidoError(
                     f"linha {numero} nao e JSON valido: {erro}") from erro
-            amostra = _linha_para_amostra(linha, numero)
+            amostra = _linha_para_amostra(linha, numero, de_trabalho)
             if amostra is not None:
                 por_parte[amostra.divisao].append(amostra)
 
@@ -130,17 +159,22 @@ def carregar(caminho: pathlib.Path) -> Conjuntos:
     # primeiro mandaria a pessoa coletar mais dados para um defeito que coletar
     # mais dados nao resolve.
     _conferir_vazamento(conjuntos)
-    _validar(conjuntos, total_de_linhas, caminho)
+    _validar(conjuntos, total_de_linhas, caminho, de_trabalho)
     return conjuntos
 
 
-def _validar(conjuntos: Conjuntos, total_de_linhas: int, caminho: pathlib.Path) -> None:
+def _validar(conjuntos: Conjuntos, total_de_linhas: int, caminho: pathlib.Path,
+             de_trabalho: str = ROTULO_HUMANO) -> None:
     if conjuntos.total == 0:
+        campo = CAMPO_DO_ROTULO[de_trabalho]
+        saida = ("Rode `accessai-revisar` antes, ou `--rotulo-de-trabalho "
+                 "provisorio` para exercer o pipeline sobre o pre-rotulo, "
+                 "sabendo que o numero mede imitacao da heuristica."
+                 if de_trabalho == ROTULO_HUMANO else
+                 "Nem `rotulo_provisorio` existe: o dataset nao foi coletado.")
         raise DatasetInvalidoError(
-            f"{caminho} tem {total_de_linhas} linha(s) e NENHUMA rotulada. "
-            "Nao ha o que treinar. A procedencia do dataset (D2) esta como "
-            "PROPOSTA no ADR 0002: enquanto ninguem rotular, treinar aqui "
-            "produziria metrica de nada.")
+            f"{caminho} tem {total_de_linhas} linha(s) e NENHUMA com {campo}. "
+            f"Nao ha o que treinar. {saida}")
 
     if conjuntos.total < MINIMO_TOTAL:
         raise DatasetInvalidoError(
