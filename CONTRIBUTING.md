@@ -187,7 +187,7 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 | 5 | ML Service consumindo Kafka, predição no resultado | Latência de inferência medida |
 | 5A | Autenticação JWT, `owner_id` em toda tabela de domínio, rate limit de upload | Teste de integração em que o usuário A recebe **404** ao pedir a análise do usuário B |
 | 6 | AI Gateway + recomendações fundamentadas na análise | Guardrail testado: pergunta sem base na análise → recusa |
-| 7 | Copilot conversacional | Idem, com histórico |
+| 7 | Copilot conversacional **sobre a análise** (ADR 0012) | Idem, com histórico |
 | 8 | Frontend + dashboard, acessível de verdade | Navegação 100% por teclado, testado com leitor de tela |
 | 9 | Observabilidade, hardening, README, ADRs | — |
 
@@ -247,6 +247,21 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 > referências a esses números espalhadas por ADRs e journals. Renumeração
 > silenciosa quebra rastro.
 
+> **A Slice 7 estava cortada, e o corte foi revertido em 2026-08-25 — ADR
+> 0012.** A `fase-0.md` mandava cortá-la ("chat em cima disso todo mundo tem").
+> O argumento valia contra um copiloto que recebe o documento; o redesenhado
+> não recebe. Contexto dele é a `Analise` já produzida, e ele conversa sobre os
+> `Problema` do motor determinístico, sem produzir achado novo.
+>
+> A reversão está anotada nos dois lugares de propósito: aqui, que é onde a
+> tabela vive, e na `fase-0.md`, que é onde a instrução de corte foi escrita.
+> Apagar o corte deixaria o ADR 0012 revertendo uma decisão que ninguém mais
+> encontra.
+>
+> As cinco invariantes do ADR 0012 são travadas por
+> `ArquiteturaDaIaTest`, e não por convenção. A prioridade da 8 sobre a 7 não
+> mudou.
+
 Regra: **um slice por vez, commitado e verde antes do próximo.** Se eu pedir
 para pular, me lembre desta linha.
 
@@ -281,6 +296,24 @@ docker compose up -d          # sobe tudo
 ./mvnw verify                 # inclui Testcontainers
 cd ml-service && pytest       # testes Python
 ```
+
+**`JAVA_HOME` precisa apontar para um JDK 25.** O projeto compila para a
+release 25 (§3) e o build falha com `class file version 69.0 ... only
+recognizes up to 65.0` se o Maven rodar sob JDK 21 — mensagem que não diz a
+ninguém o que fazer. O `maven-enforcer-plugin` agora falha antes, dizendo:
+
+```bash
+JAVA_HOME="/c/Program Files/Java/jdk-25.0.3" ./mvnw verify
+```
+
+`.mvn/jvm.config` **não** resolve isto: ele passa argumento para a JVM que
+executa o Maven, não escolhe qual JDK. Toolchains resolveria de verdade, e foi
+descartado por exigir um `toolchains.xml` em cada máquina — desproporcional
+para projeto solo.
+
+**`./mvnw verify` sem Docker no ar passa, com os E2E pulados.** 27 pulados e 27
+verdes devolvem o mesmo exit code. Confira a contagem, não só o `BUILD
+SUCCESS`.
 
 ## 10. Estrutura
 

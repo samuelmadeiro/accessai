@@ -461,6 +461,26 @@ Duas coisas, ditas como pedido na seção "Restrições desta entrega":
   inacessível é autogol: a primeira coisa que um entrevistador atento faz é
   navegar por teclado. Melhor um frontend pequeno e realmente acessível do que
   um dashboard grande e quebrado.
+
+  > **Revertido em 2026-08-25, com a Slice 7 redesenhada. Ver ADR 0012.** O
+  > corte acima fica no lugar porque o argumento dele continua correto **para o
+  > copilot que ele descrevia**: um que recebe o documento seria um segundo
+  > analisador, com LLM opinando sobre acessibilidade sem regra, sem critério
+  > versionado e sem evidência.
+  >
+  > O redesenho remove essa objeção em vez de discordar dela. O copiloto **não
+  > recebe o documento**: recebe a `Analise` já produzida, e conversa sobre os
+  > `Problema` que o motor determinístico gerou. Sem acesso ao `.docx`, ele não
+  > tem como opinar sobre o que a regra não mediu — a impossibilidade é
+  > estrutural, e não uma instrução no prompt que o modelo pode ignorar.
+  >
+  > O que sobra da slice deixa de ser "chat em cima do que a 6 já provou": é
+  > onde a fronteira entre regra e LLM passa a ser travada por teste de
+  > arquitetura em vez de por disciplina, e onde guardrail e teto de gasto são
+  > exercidos por turno, que é diferente de exercê-los numa chamada única.
+  >
+  > A prioridade da 8 sobre a 7 **não** mudou. Se o tempo apertar, a 8 continua
+  > sendo a que se protege.
 - **Kafka é justificável, não necessário.** Se em algum momento ele virar
   fricção maior que o valor, a saída não é `@Async` — é Redis Streams. Mas o
   custo de troca provavelmente não compensa.

@@ -209,6 +209,35 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
+      <!--
+        Sem isto, rodar o build sob JDK 21 falha dentro do surefire com
+        "class file version 69.0 ... only recognizes up to 65.0" — mensagem que
+        nao diz a ninguem o que fazer. O enforcer falha antes, dizendo qual
+        versao e necessaria (CONTRIBUTING.md secao 9).
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>exige-jdk-25</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[25,)</version>
+                  <message>
+                    Este projeto compila para Java 25 (CONTRIBUTING.md secao 3).
+                    Aponte JAVA_HOME para um JDK 25 ou mais novo.
+                  </message>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
