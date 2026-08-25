@@ -1,6 +1,9 @@
 # ADR 0004 - Autenticacao e isolamento por linha
 
-- **Status:** aceita (implementacao pendente; nao ha `owner_id` na Slice 1)
+- **Status:** aceita — implementacao pendente, agendada para a **Slice 5A** do
+  `CONTRIBUTING.md` §7. Ate a Slice 5 nenhuma tabela tem `owner_id`, e o teste
+  de 404 cruzado que e o entregavel desta decisao nao existe. A slice foi criada
+  justamente porque a decisao estava aceita sem dono no plano.
 - **Decisao original:** D4 de `docs/architecture/fase-0.md`
 
 ## Contexto

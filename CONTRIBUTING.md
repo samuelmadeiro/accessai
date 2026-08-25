@@ -185,6 +185,7 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 | 3 | Retry, DLT, idempotência, correlation ID | Teste que mata o consumer no meio e prova não-duplicação |
 | 4 | Dataset + treino + métricas + versionamento de modelo | Confusion matrix e baseline documentados; modelo pior que baseline é reportado como tal |
 | 5 | ML Service consumindo Kafka, predição no resultado | Latência de inferência medida |
+| 5A | Autenticação JWT, `owner_id` em toda tabela de domínio, rate limit de upload | Teste de integração em que o usuário A recebe **404** ao pedir a análise do usuário B |
 | 6 | AI Gateway + recomendações fundamentadas na análise | Guardrail testado: pergunta sem base na análise → recusa |
 | 7 | Copilot conversacional | Idem, com histórico |
 | 8 | Frontend + dashboard, acessível de verdade | Navegação 100% por teclado, testado com leitor de tela |
@@ -213,6 +214,23 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 > um `.joblib` ali faria a Slice 5 responder `usouHeuristica: false` para
 > heurística imitada. Enquanto isso não muda, toda predição declara `true`, que
 > é o que impede a canalização de se passar por modelo.
+
+> **Por que a 5A existe, e por que ela é 5A.** O D4 da `fase-0.md` é decisão
+> **aceita** — "toda tabela de domínio tem `owner_id`", isolamento por
+> `findByIdAndOwnerId`, e um teste de 404 cruzado como entregável. Até esta
+> linha ser escrita, nenhuma slice era dona disso: a tabela ia da 5 direto para
+> IA, e a 9 é "observabilidade, hardening". Decisão aceita sem dono no plano não
+> acontece.
+>
+> Vem **antes** da 6 porque `owner_id` toca toda tabela, todo repositório e todo
+> endpoint. Retrofitar isso depois do AI Gateway significa reescrever consulta
+> em código novo, e migrar tabela que já tem dado. O rate limit de upload entra
+> junto porque é o mesmo pré-requisito — ele é por usuário, e usuário só existe
+> aqui. É também onde o Redis do D4 finalmente aparece.
+>
+> Chamada 5A e não 6 de propósito: renumerar deslocaria 6, 7, 8 e 9, e há 11
+> referências a esses números espalhadas por ADRs e journals. Renumeração
+> silenciosa quebra rastro.
 
 Regra: **um slice por vez, commitado e verde antes do próximo.** Se eu pedir
 para pular, me lembre desta linha.
@@ -254,17 +272,23 @@ cd ml-service && pytest       # testes Python
 ```
 accessai/
 ├── backend/          Spring Boot, Java 25
-├── ml-service/       Python, FastAPI, consumer Kafka
-├── frontend/
-├── infrastructure/   docker, kafka, postgres
-├── datasets/         versionado, nunca no código
+├── ml-service/       Python, FastAPI — HTTP, não consumer Kafka (ADR 0011)
+├── datasets/         manifesto versionado; binários no .gitignore (C-3)
 ├── docs/
 │   ├── adr/          uma decisão por arquivo
-│   ├── architecture/ diagramas Mermaid
+│   ├── architecture/ fase-0.md: decisões D1–D6 e condições C-1 a C-3
 │   ├── wcag/         criteria.json
 │   ├── ml/           model cards
-│   └── journal/      minhas anotações por slice
-├── scripts/
+│   └── journal/      minhas anotações por slice, NN-slice.md
+├── scripts/          coleta do corpus
+├── spike/            projeto descartável: POI × XML direto (ADR 0008)
 ├── docker-compose.yml
-└── .env.example
+└── .env.example      o .env real nunca é commitado
 ```
+
+**O que ainda não existe, e quando existe:** `frontend/` é a Slice 8. Não há
+`infrastructure/` — Postgres, Kafka e ML Service estão no `docker-compose.yml`
+da raiz, e separar em pasta própria só se paga quando houver mais de um arquivo
+de infraestrutura. `spike/` fica no repositório de propósito: ele é a evidência
+da decisão do ADR 0008, e apagá-lo deixaria o ADR afirmando um resultado que
+ninguém pode conferir.
