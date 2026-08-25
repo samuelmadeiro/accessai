@@ -78,6 +78,12 @@ accessai:
     # GitHub que alguem usaria em producao sem perceber.
     segredo: ${ACCESSAI_JWT_SECRET}
 
+  ia:
+    # Teto do D5: US$ 10/mes, em centavos. O contador vive no Redis e so e
+    # alimentado por chamada que custou de verdade — hoje, com o provider de
+    # fixture, ele nunca sai de zero.
+    teto-mensal-em-centavos: ${ACCESSAI_IA_TETO_CENTAVOS:1000}
+
   rate-limit:
     # 30 uploads por hora por conta. O numero nao vem de medicao — nao ha
     # trafego para medir — e sim de ordem de grandeza: uma pessoa auditando

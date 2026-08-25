@@ -215,6 +215,15 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 > heurística imitada. Enquanto isso não muda, toda predição declara `true`, que
 > é o que impede a canalização de se passar por modelo.
 
+> **A Slice 6 está FECHADA, com o provider de fixture.** O critério —
+> guardrail testado, pergunta sem base na análise → recusa — está provado em
+> `RecomendacaoNoFluxoIT` e `GuardrailDeFundamentacaoTest`. **Nenhum modelo foi
+> consultado:** o `FakeAiProvider` responde, e toda resposta declara
+> `procedencia: "FIXTURE"` — do provider até o corpo HTTP e a coluna do banco.
+> O ADR 0005 segue em PROPOSTA, travado nas perguntas 5 e 6 da `fase-0.md`, e o
+> que falta é só um `AiProvider` real: a interface, o guardrail e o teto de
+> gasto já existem.
+
 > **A Slice 5A está FECHADA.** Autenticação JWT stateless, `owner_id` em
 > `analise` com isolamento por `findByIdAndOwnerId`, e rate limit de upload por
 > usuário no Redis. O critério de pronto — A recebe 404 na análise de B — está

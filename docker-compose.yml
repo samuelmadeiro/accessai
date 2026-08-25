@@ -97,6 +97,7 @@ services:
       ACCESSAI_JWT_SECRET: ${ACCESSAI_JWT_SECRET}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      ACCESSAI_IA_TETO_CENTAVOS: ${ACCESSAI_IA_TETO_CENTAVOS}
       # Nome do servico na rede do compose, nao localhost.
       ML_SERVICE_URL: http://ml-service:8000
     ports:
