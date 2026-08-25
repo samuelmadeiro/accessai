@@ -336,6 +336,23 @@ Binário sem procedência é pior que nenhum.
 
 ## Servir a inferência
 
+### `POST /v1/predict:batch`
+
+Os textos alternativos de um documento numa chamada só, com **um resultado por
+item, na mesma ordem do pedido** — a ordem é o contrato, porque o pedido não
+carrega identificador. Teto de 200 itens, no schema e não num `if`: pedido fora
+do contrato é recusado com 422 antes de encostar no modelo.
+
+O ganho não é só evitar `n` conexões. `predict_proba` sobre a lista vetoriza os
+`n` textos de uma vez, e o TF-IDF de palavra somado ao de caractere é a parte
+cara. E no cenário degradado, que era a preocupação real: vinte imagens passam a
+pagar **um** timeout de 1,5 s, não vinte.
+
+A degradação é do lote inteiro, não de um item — sem identificador no pedido, um
+resultado a menos torna impossível saber qual imagem ficou de fora, e associar
+por posição daria predição trocada.
+
+
 ```bash
 uvicorn accessai_ml.inference.main:app --port 8000
 ```

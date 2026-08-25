@@ -1,0 +1,263 @@
+{
+  "leiaAntes": [
+    "Corpus de contrato da heuristica de qualidade de alt text.",
+    "",
+    "A heuristica existe em DUAS linguagens: `training.modelo.BaselineHeuristico`",
+    "no Python e `integracao.ml.HeuristicaDeAltLocal` no Java. Duas",
+    "implementacoes da mesma regra divergem — foi o defeito da lista branca de",
+    "partes OOXML, corrigido na Slice 4.",
+    "",
+    "Este arquivo e o que impede a divergencia de passar despercebida: os dois",
+    "lados tem um teste que reproduz TODAS as linhas abaixo. Quem mudar uma",
+    "regra em um lado so quebra o teste do outro.",
+    "",
+    "Gerado a partir da implementacao Python, que e a fonte da verdade.",
+    "Regenerar com `python scripts/gerar_golden_heuristica.py`."
+  ],
+  "casos": [
+    {
+      "alt": "IMG_0421.jpg",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "DSC_0142.JPEG",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "image1.png",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "foto (3).jpeg",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "Captura de tela 2024-03-11.png",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "desenho.SVG",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "grafico.emf",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "x.tiff",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "---",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "...",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "123",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "___",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "  ***  ",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "42",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "imagem",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "foto",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "logo",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "icone",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "ícone",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "figura",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "banner",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "sem titulo",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "sem título",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "untitled",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "image",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "picture",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "imagem de um predio antigo na avenida",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "foto da equipe reunida em 2024",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "clique aqui para baixar o edital completo",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "logotipo institucional do orgao",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "saiba mais sobre o programa de acessibilidade",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Brasao",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Assinatura",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Rodape",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Selo",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Marca",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Anexo I",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Tabela de indicadores por orgao",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Mapa das regioes atendidas",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Fluxograma do processo",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Organograma da diretoria geral",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Grafico de barras com a evolucao do orcamento entre 2020 e 2025",
+      "categoria": "GOOD"
+    },
+    {
+      "alt": "Fotografia da fachada do predio sede vista da avenida principal",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Diagrama da arquitetura do sistema com as tres camadas nomeadas",
+      "categoria": "GOOD"
+    },
+    {
+      "alt": "Mapa do Brasil com as regioes de atuacao do programa destacadas",
+      "categoria": "GOOD"
+    },
+    {
+      "alt": "quatorze cara",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "quinze caracte",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "aaaaaaaaaaaaaa",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "aaaaaaaaaaaaaaa",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "categoria": "GOOD"
+    },
+    {
+      "alt": "   IMG_0001.JPG   ",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "  Selo  ",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "IMAGEM",
+      "categoria": "INSUFFICIENT"
+    },
+    {
+      "alt": "FOTO DA EQUIPE REUNIDA HOJE",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Ilustração de um gráfico circular com quatro fatias coloridas",
+      "categoria": "GOOD"
+    },
+    {
+      "alt": "写真",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "Gráfico",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "ícone de acessibilidade universal do programa",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "",
+      "categoria": "WEAK"
+    },
+    {
+      "alt": "   ",
+      "categoria": "WEAK"
+    }
+  ]
+}

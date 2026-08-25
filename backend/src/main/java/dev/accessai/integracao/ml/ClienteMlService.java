@@ -4,6 +4,7 @@ import dev.accessai.config.PropriedadesAccessAi;
 import dev.accessai.correlacao.Correlacao;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.List;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,11 +29,13 @@ import org.springframework.web.client.RestClientException;
  * segura a particao e atrasa todas as mensagens atras dela. Analise sem
  * predicao agora vale mais que analise com predicao daqui a quinze segundos.
  *
- * <p><b>Nao existe heuristica no lado Java.</b> A heuristica mora so no servico
- * Python; quando ele cai, nao ha classificacao nenhuma e a analise fica com o
- * que o Rule Engine ja produziu. Portar a heuristica para ca criaria a mesma
- * regra em duas linguagens, que divergem — foi o defeito da lista branca de
- * partes OOXML, corrigido na Slice 4.
+ * <p><b>Existe heuristica local, e ela e o ultimo degrau.</b> Ate a Slice 5 nao
+ * havia: o Python fora do ar significava zero classificacao. Hoje
+ * {@link HeuristicaDeAltLocal} responde no lugar, com a MESMA marca de
+ * procedencia que o servico usa — {@code usouHeuristica = true},
+ * {@code confianca = null}. A duplicacao da regra em duas linguagens e mantida
+ * honesta pelo corpus de contrato em {@code docs/ml/heuristica-alt.golden.json},
+ * que os dois lados sao obrigados a reproduzir.
  *
  * <p>O correlationId sai do MDC e vai no cabecalho: sem ele, o log do lado
  * Python nao tem como ser cruzado com o desta jornada. {@code Correlacao.atual()}
@@ -45,11 +48,15 @@ public class ClienteMlService {
     private static final Logger log = LoggerFactory.getLogger(ClienteMlService.class);
 
     static final String CAMINHO_DA_PREDICAO = "/v1/predict";
+    static final String CAMINHO_DO_LOTE = "/v1/predict:batch";
 
     private final RestClient http;
+    private final HeuristicaDeAltLocal heuristicaLocal;
 
     public ClienteMlService(RestClient.Builder construtor,
-                            @NonNull PropriedadesAccessAi propriedades) {
+                            @NonNull PropriedadesAccessAi propriedades,
+                            @NonNull HeuristicaDeAltLocal heuristicaLocal) {
+        this.heuristicaLocal = heuristicaLocal;
         PropriedadesAccessAi.MlService configuracao = propriedades.mlService();
         this.http = construtor
                 .baseUrl(configuracao.url())
@@ -109,7 +116,7 @@ public class ClienteMlService {
                     .body(RespostaMlDTO.class);
 
             if (resposta == null || resposta.categoria() == null) {
-                return indisponivel("resposta sem categoria");
+                return heuristicaPara(requisicao.altText(), "resposta sem categoria");
             }
             if (resposta.usouHeuristica()) {
                 // Nao e erro, e informacao: o servico respondeu sem modelo
@@ -120,13 +127,71 @@ public class ClienteMlService {
             return resposta;
 
         } catch (RestClientException e) {
-            return indisponivel(e.getClass().getSimpleName() + ": " + e.getMessage());
+            return heuristicaPara(requisicao.altText(),
+                    e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
-    private static RespostaMlDTO indisponivel(String motivo) {
-        log.warn("FALLBACK: ml-service indisponivel, seguindo so com o motor de "
-                + "regras local. Motivo: {}", motivo);
-        return RespostaMlDTO.indisponivel();
+    /**
+     * Classifica varios textos alternativos numa chamada so.
+     *
+     * <p>Quando o servico nao responde, ou responde com cardinalidade diferente
+     * da pedida, o lote INTEIRO cai para {@link HeuristicaDeAltLocal}. Cair item
+     * a item seria pior: sem identificador no pedido, um resultado a menos torna
+     * impossivel saber qual imagem ficou de fora, e associar pela posicao
+     * produziria predicao trocada — pior que predicao nenhuma.
+     *
+     * <p>Nunca devolve lista vazia por falha. Antes desta slice, indisponibilidade
+     * significava zero classificacao e o usuario via um documento analisado pela
+     * metade sem explicacao. Agora ele ve classificacao de regra, declarada como
+     * tal em cada linha.
+     */
+    public @NonNull List<RespostaMlDTO> predizerLote(@NonNull List<String> alts) {
+        if (alts.isEmpty()) {
+            return List.of();
+        }
+        try {
+            RespostaDeLoteMlDTO resposta = http.post()
+                    .uri(CAMINHO_DO_LOTE)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(Correlacao.CABECALHO, Correlacao.atual())
+                    .body(new RequisicaoDeLoteMlDTO(
+                            alts.stream().map(RequisicaoMlDTO::de).toList()))
+                    .retrieve()
+                    .body(RespostaDeLoteMlDTO.class);
+
+            if (resposta == null || !resposta.completoPara(alts.size())) {
+                return heuristicaPara(alts, "resposta incompleta para o lote de "
+                        + alts.size());
+            }
+            if (resposta.resultados().stream().anyMatch(RespostaMlDTO::usouHeuristica)) {
+                log.info("ml-service respondeu o lote pela heuristica dele "
+                        + "(sem modelo carregado)");
+            }
+            return resposta.resultados();
+
+        } catch (RestClientException e) {
+            return heuristicaPara(alts,
+                    e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * O ultimo degrau da degradacao: regra local, declarada como regra.
+     *
+     * <p>Nivel {@code warn} e nao {@code info} de proposito. Predicao vinda daqui
+     * e sintoma de servico fora do ar, e some do radar se ficar no mesmo nivel
+     * do caminho normal.
+     */
+    private List<RespostaMlDTO> heuristicaPara(List<String> alts, String motivo) {
+        log.warn("FALLBACK: ml-service indisponivel, classificando {} alt(s) pela "
+                + "heuristica LOCAL. Motivo: {}", alts.size(), motivo);
+        return alts.stream().map(heuristicaLocal::predizer).toList();
+    }
+
+    private RespostaMlDTO heuristicaPara(String alt, String motivo) {
+        log.warn("FALLBACK: ml-service indisponivel, classificando 1 alt pela "
+                + "heuristica LOCAL. Motivo: {}", motivo);
+        return heuristicaLocal.predizer(alt);
     }
 }

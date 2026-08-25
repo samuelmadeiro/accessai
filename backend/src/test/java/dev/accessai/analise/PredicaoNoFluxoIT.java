@@ -76,7 +76,10 @@ class PredicaoNoFluxoIT {
     static {
         try {
             mlFalso = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-            mlFalso.createContext("/v1/predict", troca -> {
+            // Dois contextos, um comportamento: o fluxo usa o LOTE desde a
+            // Slice 5, e o endpoint de item unico segue servido porque o
+            // contrato dele continua valendo para quem chamar direto.
+            com.sun.net.httpserver.HttpHandler manipulador = troca -> {
                 chamadas.incrementAndGet();
                 troca.getRequestBody().readAllBytes();
                 String corpo = resposta.get();
@@ -85,13 +88,18 @@ class PredicaoNoFluxoIT {
                     troca.close();
                     return;
                 }
+                if (troca.getRequestURI().getPath().endsWith(":batch")) {
+                    corpo = "{\"resultados\":[" + corpo + "]}";
+                }
                 byte[] bytes = corpo.getBytes(StandardCharsets.UTF_8);
                 troca.getResponseHeaders().add("Content-Type", "application/json");
                 troca.sendResponseHeaders(200, bytes.length);
                 try (OutputStream saida = troca.getResponseBody()) {
                     saida.write(bytes);
                 }
-            });
+            };
+            mlFalso.createContext("/v1/predict", manipulador);
+            mlFalso.createContext("/v1/predict:batch", manipulador);
             mlFalso.start();
         } catch (IOException e) {
             throw new IllegalStateException("nao subiu o ml falso", e);
@@ -173,7 +181,7 @@ class PredicaoNoFluxoIT {
     }
 
     @Test
-    @DisplayName("ml-service fora do ar: a analise conclui sem predicao")
+    @DisplayName("ml-service fora do ar: a analise conclui com a heuristica LOCAL")
     void mlForaDoArNaoDerrubaAAnalise() {
         resposta.set(null);   // o servidor passa a responder 503
 
@@ -181,7 +189,16 @@ class PredicaoNoFluxoIT {
 
         AnaliseDto.RespostaDeAnalise resultado = aguardarConclusao(analiseId);
 
-        assertThat(resultado.predicoesDeAlt()).isEmpty();
+        // Ate a Slice 5 isto era uma lista vazia, e o usuario via um documento
+        // analisado pela metade sem nenhuma explicacao. Agora a regra local
+        // responde — e se declara como regra, que e o que separa degradacao
+        // honesta de "ML que e if/else".
+        assertThat(resultado.predicoesDeAlt()).singleElement().satisfies(predicao -> {
+            assertThat(predicao.alt()).isEqualTo("Logo");
+            assertThat(predicao.usouHeuristica()).isTrue();
+            assertThat(predicao.confianca()).isNull();
+            assertThat(predicao.modeloVersao()).isNull();
+        });
         // Analise sem predicao, nao analise a menos: o score sai completo.
         // O documento e acessivel (titulo, idioma e alt preenchido), entao o
         // esperado e 100 e nenhum problema — a ausencia do ML nao muda nada

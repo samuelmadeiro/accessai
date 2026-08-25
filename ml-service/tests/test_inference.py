@@ -8,7 +8,7 @@ import joblib
 import pytest
 from fastapi.testclient import TestClient
 
-from accessai_ml.inference import main
+from accessai_ml.inference import main, schemas
 from accessai_ml.inference.servico import ServicoDePredicao
 from accessai_ml.training import train
 from test_training import escrever_dataset  # noqa: I001  (helper local de teste)
@@ -272,3 +272,97 @@ def test_endpoint_nao_devolve_5xx_com_artefato_quebrado(tmp_path, monkeypatch):
 
     assert resposta.status_code == 200
     assert resposta.json()["usouHeuristica"] is True
+
+
+# ------------------------------------------------------------------- lote
+
+def test_lote_devolve_um_resultado_por_item_na_mesma_ordem(sem_modelo):
+    # A ordem e o contrato: o pedido nao carrega identificador, entao e por ela
+    # que o backend liga resultado a imagem.
+    alts = ["IMG_0421.jpg", "Grafico de barras com a evolucao do orcamento",
+            "Brasao"]
+    resposta = sem_modelo.post("/v1/predict:batch",
+                               json={"itens": [{"altText": a} for a in alts]})
+
+    assert resposta.status_code == 200
+    resultados = resposta.json()["resultados"]
+    assert len(resultados) == len(alts)
+    individuais = [sem_modelo.post("/v1/predict", json={"altText": a}).json()
+                   for a in alts]
+    assert [r["categoria"] for r in resultados] == \
+        [r["categoria"] for r in individuais]
+
+
+def test_lote_sem_modelo_marca_heuristica_em_todos(sem_modelo):
+    resposta = sem_modelo.post("/v1/predict:batch", json={
+        "itens": [{"altText": "imagem"}, {"altText": "foto"}]})
+
+    assert all(r["usouHeuristica"] is True for r in resposta.json()["resultados"])
+    assert all(r["confianca"] is None for r in resposta.json()["resultados"])
+
+
+def test_lote_com_modelo_nao_marca_heuristica(com_modelo):
+    resposta = com_modelo.post("/v1/predict:batch", json={
+        "itens": [{"altText": "Fotografia da fachada do predio sede"},
+                  {"altText": "IMG_0001.jpg"}]})
+
+    resultados = resposta.json()["resultados"]
+    assert all(r["usouHeuristica"] is False for r in resultados)
+    assert all(0.0 <= r["confianca"] <= 1.0 for r in resultados)
+
+
+def test_lote_e_individual_concordam_com_modelo(com_modelo):
+    # Uma passada vetorizada nao pode dar resultado diferente de n passadas.
+    alts = ["Diagrama da arquitetura com as tres camadas", "image1.png", "Selo"]
+    lote = com_modelo.post("/v1/predict:batch",
+                           json={"itens": [{"altText": a} for a in alts]}).json()
+    um_a_um = [com_modelo.post("/v1/predict", json={"altText": a}).json()
+               for a in alts]
+
+    assert [r["categoria"] for r in lote["resultados"]] == \
+        [r["categoria"] for r in um_a_um]
+
+
+@pytest.mark.parametrize("corpo", [
+    {"itens": []},
+    {"itens": [{"altText": ""}]},
+    {"itens": [{"altText": "ok"}] * (schemas.MAX_LOTE + 1)},
+    {"itens": [{"altText": "ok", "campoDesconhecido": 1}]},
+    {"lista": [{"altText": "ok"}]},
+])
+def test_lote_fora_do_contrato_e_recusado_com_422(sem_modelo, corpo):
+    assert sem_modelo.post("/v1/predict:batch", json=corpo).status_code == 422
+
+
+def test_lote_no_teto_e_aceito(sem_modelo):
+    corpo = {"itens": [{"altText": "imagem"}] * schemas.MAX_LOTE}
+
+    resposta = sem_modelo.post("/v1/predict:batch", json=corpo)
+
+    assert resposta.status_code == 200
+    assert len(resposta.json()["resultados"]) == schemas.MAX_LOTE
+
+
+def test_lote_degrada_inteiro_quando_o_pipeline_falha(com_modelo, monkeypatch):
+    # Falha na passada vetorizada nao pode virar 5xx: o lote inteiro cai para a
+    # heuristica e cada item diz isso.
+    servico = main.app.state.servico
+
+    class PipelineQuebrado:
+        classes_ = ["GOOD"]
+
+        def predict_proba(self, textos):
+            raise RuntimeError("estouro simulado")
+
+    monkeypatch.setattr(servico, "_pipeline", PipelineQuebrado())
+    resposta = com_modelo.post("/v1/predict:batch", json={
+        "itens": [{"altText": "imagem"}, {"altText": "foto"}]})
+
+    assert resposta.status_code == 200
+    assert all(r["usouHeuristica"] is True for r in resposta.json()["resultados"])
+
+
+def test_lote_vazio_no_servico_nao_chama_o_pipeline():
+    servico = ServicoDePredicao(pathlib.Path("nao-existe"))
+
+    assert servico.prever_lote([]) == []

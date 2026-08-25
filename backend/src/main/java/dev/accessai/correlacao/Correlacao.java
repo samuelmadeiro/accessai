@@ -1,7 +1,10 @@
 package dev.accessai.correlacao;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /**
@@ -16,6 +19,11 @@ public final class Correlacao {
 
     public static final String CABECALHO = "X-Correlation-ID";
     public static final String CHAVE_MDC = "correlationId";
+
+    /** Marca de "ja registrei a ponte literal-UUID nesta jornada". */
+    static final String CHAVE_MDC_DERIVACAO_REGISTRADA = "correlationDerivada";
+
+    private static final Logger log = LoggerFactory.getLogger(Correlacao.class);
 
     /**
      * Cabecalho vindo do cliente e entrada hostil como qualquer outra
@@ -42,6 +50,7 @@ public final class Correlacao {
 
     public static void limpar() {
         MDC.remove(CHAVE_MDC);
+        MDC.remove(CHAVE_MDC_DERIVACAO_REGISTRADA);
     }
 
     /**
@@ -76,7 +85,35 @@ public final class Correlacao {
         try {
             return UUID.fromString(atual);
         } catch (IllegalArgumentException e) {
-            return UUID.nameUUIDFromBytes(atual.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            UUID derivado = UUID.nameUUIDFromBytes(
+                    atual.getBytes(StandardCharsets.UTF_8));
+            registrarDerivacao(atual, derivado);
+            return derivado;
         }
+    }
+
+    /**
+     * Publica a ponte entre o id literal do cliente e o UUID que foi para o banco.
+     *
+     * <p>Sem esta linha a jornada fica partida em duas metades que ninguem
+     * consegue juntar: o log inteiro carrega {@code abc123}, o banco e o payload
+     * do evento carregam um UUID, e quem chega pelo banco — que e como comeca
+     * toda investigacao de um caso especifico — nao acha nenhuma linha de log.
+     * A derivacao e deterministica, mas ninguem calcula {@code nameUUIDFromBytes}
+     * de cabeca na hora do incidente.
+     *
+     * <p>Uma vez por jornada, nao por chamada: {@code atualComoUuid()} e chamado
+     * ao gravar a analise, ao publicar o evento e ao consumir, e repetir a mesma
+     * linha tres vezes so aumentaria o ruido. A marca vive no MDC e some junto
+     * com o resto em {@link #limpar()}.
+     */
+    private static void registrarDerivacao(String literal, UUID derivado) {
+        if (MDC.get(CHAVE_MDC_DERIVACAO_REGISTRADA) != null) {
+            return;
+        }
+        MDC.put(CHAVE_MDC_DERIVACAO_REGISTRADA, "sim");
+        log.info("correlationId do cliente '{}' nao e UUID; gravado como {} no "
+                + "banco e no evento. Grep pelos dois liga a jornada inteira.",
+                literal, derivado);
     }
 }

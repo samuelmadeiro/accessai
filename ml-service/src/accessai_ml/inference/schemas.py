@@ -17,6 +17,16 @@ from pydantic import BaseModel, ConfigDict, Field
 MAX_ALT = 2_000
 MAX_CONTEXTO = 2_000
 
+# Teto de itens por lote. O numero nao e arbitrario: com o p99 de ~9 ms por
+# imagem medido em `bench/medir_latencia.py`, 200 itens cabem folgados no
+# timeout de leitura de 1500 ms que o cliente Java usa — e um documento com mais
+# de 200 imagens e caso de outro problema, nao de mais um lote.
+#
+# O limite mora no schema, e nao num `if` no meio do servico, pelo mesmo motivo
+# dos tamanhos acima: pedido fora do contrato e recusado com 422 antes de
+# encostar no modelo.
+MAX_LOTE = 200
+
 
 def _camel(nome: str) -> str:
     primeira, *resto = nome.split("_")
@@ -60,6 +70,33 @@ class RespostaAnalise(Base):
     confianca: float | None = Field(default=None, ge=0.0, le=1.0)
     modelo_versao: str | None = None
     usou_heuristica: bool
+
+
+class RequisicaoDeLote(Base):
+    """Varios textos alternativos de UM documento, numa chamada so.
+
+    Existe porque a API de item unico fazia o backend abrir uma conexao por
+    imagem. Medido, o custo normal era aceitavel — mas com o servico degradado
+    ele vira linear no numero de imagens, e e ai que o documento de vinte
+    imagens vira trinta segundos de espera.
+
+    A lista nao pode ser vazia: lote vazio e sempre erro de quem chama, e
+    devolver `[]` em silencio esconderia o defeito no cliente.
+    """
+
+    itens: list[RequisicaoAnalise] = Field(min_length=1, max_length=MAX_LOTE)
+
+
+class RespostaDeLote(Base):
+    """Um resultado por item, NA MESMA ORDEM do pedido.
+
+    A ordem e o contrato: sem ela o consumidor nao tem como ligar resultado a
+    imagem, porque o pedido nao carrega identificador. Um `id` por item seria a
+    alternativa, e custaria ao backend inventar chave para algo que ele ja tem
+    ordenado em memoria.
+    """
+
+    resultados: list[RespostaAnalise]
 
 
 class RespostaDeSaude(Base):

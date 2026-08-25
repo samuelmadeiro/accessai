@@ -618,3 +618,39 @@ def test_cli_avisa_quando_a_classe_minoritaria_nao_e_avaliavel(tmp_path, capsys)
 
     erro = capsys.readouterr().err
     assert "classe minoritaria nao avaliavel" in erro
+
+
+# ------------------ contrato da heuristica entre Python e Java (Slice 5)
+
+GOLDEN = (pathlib.Path(__file__).resolve().parent.parent.parent
+          / "docs" / "ml" / "heuristica-alt.golden.json")
+
+
+def _golden() -> list[dict[str, str]]:
+    return json.loads(GOLDEN.read_text(encoding="utf-8"))["casos"]
+
+
+def test_golden_reproduz_a_heuristica_deste_modulo():
+    # Este arquivo e o contrato com `HeuristicaDeAltLocal` do lado Java. Se ele
+    # sair de sincronia com a implementacao daqui, o Java passa a concordar com
+    # uma regra que nao existe mais — divergencia silenciosa, que e exatamente
+    # o que o golden existe para impedir.
+    heuristica = modelo.BaselineHeuristico()
+    casos = _golden()
+
+    assert casos, "golden vazio faria este teste passar sem provar nada"
+    for caso in casos:
+        assert heuristica.predict([caso["alt"]])[0] == caso["categoria"], (
+            f"alt {caso['alt']!r}: regenerar com "
+            "`python scripts/gerar_golden_heuristica.py`")
+
+
+def test_golden_cobre_as_tres_classes():
+    # Um corpus so de INSUFFICIENT passaria com uma implementacao que devolve
+    # INSUFFICIENT para tudo, nos dois lados.
+    assert {c["categoria"] for c in _golden()} == set(dados.ROTULOS_VALIDOS)
+
+
+def test_golden_nao_tem_alt_repetido():
+    alts = [c["alt"] for c in _golden()]
+    assert len(alts) == len(set(alts))

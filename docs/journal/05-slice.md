@@ -12,6 +12,15 @@
   vem da heurística, e cada resposta declara isso em `usouHeuristica: true`.
   O que esta slice entrega é a canalização, não predição de ML de verdade.
 
+> **O que mudou depois desta entrada.** Três dívidas listadas no fim foram
+> fechadas: existe `POST /v1/predict:batch` e o fluxo manda o documento inteiro
+> numa chamada; existe `HeuristicaDeAltLocal` no Java, então o Python fora do ar
+> não significa mais zero classificação; e uma linha de log por jornada liga o
+> `correlationId` literal do cliente ao UUID gravado no banco. O texto abaixo
+> fica como estava — ele registra a slice no fechamento dela, e os itens 7 e "O
+> que eu construí" descrevem o comportamento **daquele** momento. As mudanças
+> estão marcadas na seção de dívida e no ADR 0011.
+
 ---
 
 ## O que foi construído
@@ -234,15 +243,21 @@ falta:
 - **Não há modelo.** `models/` vazio, D2 em PROPOSTA no ADR 0002. A Slice 5
   entrega a canalização; a predição de verdade depende de resolver a
   procedência do dataset.
-- **Não existe heurística no lado Java.** Quando o Python cai, não há
-  classificação nenhuma — a análise fica com o que o Rule Engine já produziu.
-  Portar a heurística criaria a mesma regra em duas linguagens, que divergem.
-- **Uma chamada HTTP por imagem.** A API é de item único. Medido, o custo é
-  aceitável (~180 ms para vinte imagens); com o serviço degradado vira linear.
-  Lote resolveria e a API não suporta.
-- **O correlationId do cliente vira UUID derivado** depois da borda HTTP, porque
-  a coluna e o payload são `UUID`. A derivação é determinística, mas grepar o
-  log pelo id literal que o cliente mandou não funciona.
+- ~~**Não existe heurística no lado Java.**~~ **Resolvido depois de escrita esta
+  entrada.** `HeuristicaDeAltLocal` responde quando o Python cai, com
+  `usouHeuristica: true` e `confianca: null`. A objeção original — a mesma regra
+  em duas linguagens diverge — continua de pé, e é paga com um corpus de
+  contrato em `docs/ml/heuristica-alt.golden.json` que os dois lados reproduzem
+  em teste. O que virou o jogo: sem ela, Python fora do ar significava **zero**
+  classificação, e o usuário via um documento analisado pela metade sem
+  explicação nenhuma.
+- ~~**Uma chamada HTTP por imagem.**~~ **Resolvido:** `POST /v1/predict:batch`,
+  e o fluxo manda o documento inteiro numa chamada. O cenário degradado deixou
+  de ser linear: vinte imagens pagam um timeout de 1,5 s, não vinte.
+- **O `correlationId` derivado agora tem ponte no log.** Continua virando UUID
+  depois da borda HTTP, mas uma linha de log por jornada liga o id literal do
+  cliente ao UUID que foi para o banco — grep por qualquer um dos dois acha a
+  jornada inteira.
 - **A predição não é versionada junto com a análise.** Se o modelo mudar, as
   predições antigas continuam lá sem indicar que vieram de outra versão — hoje
   `modelo_versao` é sempre nulo porque não há modelo.

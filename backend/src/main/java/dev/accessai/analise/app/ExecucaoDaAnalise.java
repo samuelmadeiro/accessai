@@ -142,22 +142,36 @@ public class ExecucaoDaAnalise {
      */
     private @NonNull List<PredicaoDeAlt> classificarAlts(java.util.UUID analiseId,
                                                          @Nonnull DocumentoExtraido extraido, Instant agora) {//recebendo o dopcumento extraido
-        List<PredicaoDeAlt> predicoes = new ArrayList<>();
-        int indice = 0;
-        for (ImagemDoDocumento imagem : extraido.imagens()) {
-            if (imagem.situacaoAlt() != ImagemDoDocumento.SituacaoDoAlt.PRESENTE) {
+        List<ImagemDoDocumento> comAlt = extraido.imagens().stream()
+                .filter(i -> i.situacaoAlt() == ImagemDoDocumento.SituacaoDoAlt.PRESENTE)
+                .toList();
+        if (comAlt.isEmpty()) {
+            return List.of();
+        }
+
+        // UMA chamada para o documento inteiro. Antes era uma por imagem: no
+        // caminho normal o custo era aceitavel (~180 ms para vinte), mas com o
+        // servico travado cada imagem pagava o timeout de 1,5 s e vinte viravam
+        // trinta segundos. O lote transforma isso num timeout so.
+        List<RespostaMlDTO> respostas = ml.predizerLote(
+                comAlt.stream().map(ImagemDoDocumento::texto).toList());
+        if (respostas.size() != comAlt.size()) {
+            // O cliente ja garante cardinalidade, inclusive no caminho de
+            // fallback. Se ainda assim divergir, associar por posicao daria
+            // predicao trocada — e predicao trocada e pior que predicao nenhuma.
+            log.warn("sem predicao para analiseId={}: {} respostas para {} imagens",
+                    analiseId, respostas.size(), comAlt.size());
+            return List.of();
+        }
+
+        List<PredicaoDeAlt> predicoes = new ArrayList<>(comAlt.size());
+        for (int indice = 0; indice < comAlt.size(); indice++) {
+            ImagemDoDocumento imagem = comAlt.get(indice);
+            RespostaMlDTO resposta = respostas.get(indice);
+            if (!resposta.temPredicao()) {
                 continue;
             }
-            RespostaMlDTO resposta = ml.predizer(RequisicaoMlDTO.de(imagem.texto()));
-            if (!resposta.temPredicao()) {
-                // Uma indisponibilidade derruba a predicao de TODAS as imagens
-                // deste documento: nao adianta seguir pedindo para um servico
-                // que acabou de nao responder, com 1,5 s de timeout cada.
-                log.info("sem predicao para analiseId={}: ml-service indisponivel",
-                        analiseId);
-                return predicoes;
-            }
-            predicoes.add(PredicaoDeAlt.de(analiseId, indice++, imagem.partePacote(),
+            predicoes.add(PredicaoDeAlt.de(analiseId, indice, imagem.partePacote(),
                     imagem.nome(), imagem.texto(), resposta.categoria(),
                     resposta.confianca(), resposta.usouHeuristica(),
                     resposta.modeloVersao(), agora));

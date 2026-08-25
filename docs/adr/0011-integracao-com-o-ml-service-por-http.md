@@ -65,9 +65,21 @@ conexao recusada, 500, corpo malformado.
   TODA chamada estourar o timeout de 1500 ms, o que e o cenario de servico
   travado, nao o tipico.
 
-  O que sobra de preocupacao e o cenario degradado, nao o normal: e com servico
-  travado que o custo vira linear no numero de imagens. Lote resolveria, e a API
-  nao suporta hoje.
+  ~~O que sobra de preocupacao e o cenario degradado (...) Lote resolveria, e a
+  API nao suporta hoje.~~ **Resolvido: existe `POST /v1/predict:batch`**, e o
+  fluxo passa o documento inteiro numa chamada so. O cenario degradado deixou de
+  ser linear — vinte imagens pagam UM timeout de 1,5 s, nao vinte. O endpoint de
+  item unico continua servido: o contrato dele vale para quem chamar direto.
+
+- ~~**Indisponibilidade custa a predicao de todas as imagens do documento.**~~
+  **Deixou de custar.** `HeuristicaDeAltLocal` responde quando o servico Python
+  nao responde, com a mesma marca de procedencia — `usouHeuristica = true`,
+  `confianca = null`. A objecao original continua valendo (a mesma regra em duas
+  linguagens diverge) e e paga por um corpus de contrato em
+  `docs/ml/heuristica-alt.golden.json` que os dois lados sao obrigados a
+  reproduzir. O que mudou o custo-beneficio: sem a heuristica local, o Python
+  fora do ar significava ZERO classificacao, e o usuario via um documento
+  analisado pela metade sem nenhuma explicacao.
 - **Contradiz o contrato escrito.** Alguem que leia so o `CONTRIBUTING.md` vai
   procurar um consumidor Kafka em `ml-service/` e nao vai achar. Este ADR e o
   unico lugar onde os dois se conciliam.

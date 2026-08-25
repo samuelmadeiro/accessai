@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +58,7 @@ class ClienteMlServiceTest {
                                   AtomicReference<String> corpoRecebido,
                                   AtomicReference<String> cabecalhos) throws IOException {
         servidor = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        servidor.createContext(ClienteMlService.CAMINHO_DA_PREDICAO, troca -> {
+        com.sun.net.httpserver.HttpHandler manipulador = troca -> {
             if (corpoRecebido != null) {
                 corpoRecebido.set(new String(troca.getRequestBody().readAllBytes(),
                         StandardCharsets.UTF_8));
@@ -74,7 +75,9 @@ class ClienteMlServiceTest {
                 }
             }
             responder(troca, status, corpo);
-        });
+        };
+        servidor.createContext(ClienteMlService.CAMINHO_DA_PREDICAO, manipulador);
+        servidor.createContext(ClienteMlService.CAMINHO_DO_LOTE, manipulador);
         servidor.start();
         return "http://127.0.0.1:" + servidor.getAddress().getPort();
     }
@@ -99,7 +102,8 @@ class ClienteMlServiceTest {
                         new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
                 new PropriedadesAccessAi.Outbox(500, 50, 2_000, 10_000, 10),
                 new PropriedadesAccessAi.MlService(url, 500, readTimeoutMs));
-        return new ClienteMlService(RestClient.builder(), propriedades);
+        return new ClienteMlService(RestClient.builder(), propriedades,
+                new HeuristicaDeAltLocal());
     }
 
     private static RequisicaoMlDTO umaRequisicao() {
@@ -148,9 +152,11 @@ class ClienteMlServiceTest {
 
         RespostaMlDTO resposta = cliente.predizer(umaRequisicao());
 
-        assertThat(resposta.temPredicao()).isFalse();
-        assertThat(resposta.categoria()).isNull();
-        assertThat(resposta.usouHeuristica()).isFalse();
+        assertThat(resposta.temPredicao())
+                .as("o fallback agora e a heuristica local, nao ausencia de predicao")
+                .isTrue();
+        assertThat(resposta.usouHeuristica()).isTrue();
+        assertThat(resposta.categoria()).isEqualTo("INSUFFICIENT");
     }
 
     @Test
@@ -161,7 +167,11 @@ class ClienteMlServiceTest {
 
         RespostaMlDTO resposta = cliente.predizer(umaRequisicao());
 
-        assertThat(resposta.temPredicao()).isFalse();
+        assertThat(resposta.temPredicao())
+                .as("o fallback agora e a heuristica local, nao ausencia de predicao")
+                .isTrue();
+        assertThat(resposta.usouHeuristica()).isTrue();
+        assertThat(resposta.categoria()).isEqualTo("INSUFFICIENT");
     }
 
     @Test
@@ -171,7 +181,11 @@ class ClienteMlServiceTest {
 
         RespostaMlDTO resposta = cliente.predizer(umaRequisicao());
 
-        assertThat(resposta.temPredicao()).isFalse();
+        assertThat(resposta.temPredicao())
+                .as("o fallback agora e a heuristica local, nao ausencia de predicao")
+                .isTrue();
+        assertThat(resposta.usouHeuristica()).isTrue();
+        assertThat(resposta.categoria()).isEqualTo("INSUFFICIENT");
     }
 
     @Test
@@ -179,7 +193,9 @@ class ClienteMlServiceTest {
     void corpoMalformadoAcionaFallback() throws IOException {
         ClienteMlService cliente = clientePara(subir(200, "isto nao e json", 0), 1500);
 
-        assertThat(cliente.predizer(umaRequisicao()).temPredicao()).isFalse();
+        RespostaMlDTO caida = cliente.predizer(umaRequisicao());
+        assertThat(caida.usouHeuristica()).isTrue();
+        assertThat(caida.categoria()).isEqualTo("INSUFFICIENT");
     }
 
     @Test
@@ -188,7 +204,9 @@ class ClienteMlServiceTest {
         ClienteMlService cliente = clientePara(
                 subir(200, "{\"usouHeuristica\":true}", 0), 1500);
 
-        assertThat(cliente.predizer(umaRequisicao()).temPredicao()).isFalse();
+        RespostaMlDTO caida = cliente.predizer(umaRequisicao());
+        assertThat(caida.usouHeuristica()).isTrue();
+        assertThat(caida.categoria()).isEqualTo("INSUFFICIENT");
     }
 
     // ------------------------------------------------------ contrato do fio
@@ -241,5 +259,80 @@ class ClienteMlServiceTest {
         // Sem o id, o log do lado Python nao cruza com o desta jornada.
         assertThat(cabecalhos.get()).startsWith("jornada-4711|");
         assertThat(cabecalhos.get()).contains("application/json");
+    }
+
+    // ------------------------------------------------------- lote e fallback
+
+    @Test
+    @DisplayName("lote devolve um resultado por item, na ordem")
+    void loteNaOrdem() throws IOException {
+        String url = subir(200, """
+                {"resultados":[
+                  {"categoria":"GOOD","confianca":0.9,"modeloVersao":"0.1.0","usouHeuristica":false},
+                  {"categoria":"WEAK","confianca":0.5,"modeloVersao":"0.1.0","usouHeuristica":false}]}""",
+                0);
+
+        List<RespostaMlDTO> respostas = clientePara(url, 1_500)
+                .predizerLote(List.of("um alt qualquer", "outro alt"));
+
+        assertThat(respostas).extracting(RespostaMlDTO::categoria)
+                .containsExactly("GOOD", "WEAK");
+    }
+
+    @Test
+    @DisplayName("servico fora do ar cai para a heuristica LOCAL, nao para lista vazia")
+    void loteForaDoArUsaHeuristicaLocal() {
+        // Antes da Slice 5 isto devolvia zero predicoes e o usuario via um
+        // documento analisado pela metade, sem explicacao.
+        List<RespostaMlDTO> respostas = clientePara("http://127.0.0.1:1", 1_500)
+                .predizerLote(List.of("IMG_0421.jpg",
+                        "Grafico de barras com a evolucao do orcamento entre 2020 e 2025"));
+
+        assertThat(respostas).hasSize(2);
+        assertThat(respostas).allSatisfy(r -> {
+            assertThat(r.usouHeuristica())
+                    .as("predicao de regra tem que se declarar como regra").isTrue();
+            assertThat(r.confianca())
+                    .as("regra nao tem probabilidade").isNull();
+            assertThat(r.temPredicao()).isTrue();
+        });
+        assertThat(respostas).extracting(RespostaMlDTO::categoria)
+                .containsExactly("INSUFFICIENT", "GOOD");
+    }
+
+    @Test
+    @DisplayName("cardinalidade diferente da pedida cai para a heuristica local")
+    void loteIncompletoUsaHeuristicaLocal() throws IOException {
+        // Sem identificador no pedido, um resultado a menos torna impossivel
+        // saber QUAL item ficou de fora. Associar por posicao daria predicao
+        // trocada, que e pior que predicao nenhuma.
+        String url = subir(200, """
+                {"resultados":[
+                  {"categoria":"GOOD","confianca":0.9,"modeloVersao":"0.1.0","usouHeuristica":false}]}""",
+                0);
+
+        List<RespostaMlDTO> respostas = clientePara(url, 1_500)
+                .predizerLote(List.of("Selo", "Brasao"));
+
+        assertThat(respostas).hasSize(2);
+        assertThat(respostas).allMatch(RespostaMlDTO::usouHeuristica);
+    }
+
+    @Test
+    @DisplayName("lote vazio nao chama o servico")
+    void loteVazio() {
+        assertThat(clientePara("http://127.0.0.1:1", 1_500).predizerLote(List.of()))
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("item unico fora do ar tambem cai para a heuristica local")
+    void itemUnicoForaDoArUsaHeuristicaLocal() {
+        RespostaMlDTO resposta = clientePara("http://127.0.0.1:1", 1_500)
+                .predizer(RequisicaoMlDTO.de("IMG_0421.jpg"));
+
+        assertThat(resposta.categoria()).isEqualTo("INSUFFICIENT");
+        assertThat(resposta.usouHeuristica()).isTrue();
+        assertThat(resposta.confianca()).isNull();
     }
 }

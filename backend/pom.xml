@@ -160,6 +160,19 @@
           <include>criteria.json</include>
         </includes>
       </resource>
+      <!--
+        Corpus de contrato da heuristica de alt text. Ele mora em docs/ml/ pelo
+        mesmo motivo da tabela WCAG: nao pertence ao backend, e o acordo entre
+        as duas implementacoes da regra — a do Python e a daqui. Copiar em vez
+        de duplicar mantem uma fonte de verdade so.
+      -->
+      <resource>
+        <directory>${project.basedir}/../docs/ml</directory>
+        <targetPath>ml</targetPath>
+        <includes>
+          <include>heuristica-alt.golden.json</include>
+        </includes>
+      </resource>
     </resources>
     <plugins>
       <plugin>

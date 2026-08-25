@@ -138,6 +138,50 @@ class ServicoDePredicao:
                         type(erro).__name__, erro)
             return self._prever_com_heuristica(alt)
 
+    def prever_lote(self, alts: list[str]) -> list[Resultado]:
+        """Classifica varios textos com UMA passada pelo pipeline. Nunca lanca.
+
+        O ganho nao e so evitar `n` chamadas HTTP: `predict_proba` sobre uma
+        lista vetoriza os `n` textos de uma vez, e o TF-IDF de palavra somado ao
+        de caractere e a parte cara. Chamar `prever` em laco jogaria isso fora.
+
+        A degradacao e do LOTE INTEIRO, nao de um item: se a passada falhar, nao
+        da para saber qual texto a derrubou sem repetir tudo item a item — e
+        repetir dobraria o custo justamente no caminho que ja esta com problema.
+        Cada resultado sai marcado com `usou_heuristica`, entao o consumidor ve o
+        que aconteceu sem precisar de um campo novo.
+        """
+        if not alts:
+            return []
+
+        pipeline = self._pipeline
+        if pipeline is None:
+            return [self._prever_com_heuristica(alt) for alt in alts]
+
+        try:
+            return self._prever_lote_com(pipeline, alts)
+        except Exception as erro:  # noqa: BLE001 - degrada o LOTE, nao o servico
+            log.warning("falha ao predizer lote de %d, heuristica neste lote "
+                        "(%s: %s)", len(alts), type(erro).__name__, erro)
+            return [self._prever_com_heuristica(alt) for alt in alts]
+
+    @staticmethod
+    def _prever_lote_com(pipeline: Any, alts: list[str]) -> list[Resultado]:
+        if hasattr(pipeline, "predict_proba"):
+            matriz = pipeline.predict_proba(alts)
+            classes = pipeline.classes_
+            resultados: list[Resultado] = []
+            for probabilidades in matriz:
+                indice = int(probabilidades.argmax())
+                resultados.append(Resultado(
+                    categoria=str(classes[indice]),
+                    confianca=float(probabilidades[indice]),
+                    usou_heuristica=False))
+            return resultados
+        return [Resultado(categoria=str(categoria), confianca=None,
+                          usou_heuristica=False)
+                for categoria in pipeline.predict(alts)]
+
     @staticmethod
     def _prever_com(pipeline: Any, alt: str) -> Resultado:
         """Uma passada so pelo pipeline.
