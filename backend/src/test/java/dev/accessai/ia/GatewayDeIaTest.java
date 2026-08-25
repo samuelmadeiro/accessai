@@ -80,6 +80,7 @@ class GatewayDeIaTest {
     private static final class ProviderEspiao implements AiProvider {
         int chamadas;
         boolean inventar;
+        List<Turno> ultimoHistorico = List.of();
 
         @Override
         public Procedencia procedencia() {
@@ -99,5 +100,75 @@ class GatewayDeIaTest {
                     List.of(new RespostaDeIa.Recomendacao(regra, "1.1.1", "texto")),
                     Procedencia.MODELO, "espiao", 0L);
         }
+
+        @Override
+        public RespostaDeConversa conversar(Fundamento fundamento, List<Turno> historico,
+                                            String prompt) {
+            chamadas++;
+            ultimoHistorico = historico;
+            String texto = inventar
+                    ? "o contraste 1.4.3 tambem falhou"
+                    : "a imagem esta sem alt (1.1.1)";
+            return new RespostaDeConversa(texto, Procedencia.MODELO, "espiao", 0L);
+        }
+    }
+
+    // ---------------------------------------------------- Slice 7: conversa
+
+    @Test
+    @DisplayName("conversa passa pelas MESMAS quatro etapas, na mesma ordem")
+    void conversaPassaPelasMesmasEtapas() {
+        RespostaDeConversa resposta =
+                gateway.conversar(comAchados("o que voce achou?"), List.of());
+
+        assertThat(provider.chamadas).isEqualTo(1);
+        assertThat(resposta.procedencia()).isEqualTo(AiProvider.Procedencia.MODELO);
+        verify(contador).conferir();
+        verify(contador).registrar(0L);
+    }
+
+    @Test
+    @DisplayName("guardrail de entrada vale POR TURNO, nao so na abertura da conversa")
+    void guardrailValePorTurno() {
+        // Conferir so no primeiro turno deixaria a pergunta fora de escopo
+        // entrar no segundo — que e justamente onde ela aparece, depois de o
+        // primeiro ter estabelecido confianca.
+        List<AiProvider.Turno> historico = List.of(
+                new AiProvider.Turno(AiProvider.Turno.Papel.USUARIO, "o que voce achou?"),
+                new AiProvider.Turno(AiProvider.Turno.Papel.ASSISTENTE, "uma imagem sem alt"));
+
+        assertThatThrownBy(() -> gateway.conversar(comAchados("e o 1.4.3?"), historico))
+                .isInstanceOf(GuardrailDeFundamentacao.SemFundamentoException.class);
+
+        assertThat(provider.chamadas).isZero();
+    }
+
+    @Test
+    @DisplayName("resposta de conversa que inventa criterio nao sai do gateway")
+    void saidaDeConversaRecusada() {
+        provider.inventar = true;
+
+        // Recusa INTEIRA, e nao filtro: texto corrido nao tem item a descartar.
+        assertThatThrownBy(() -> gateway.conversar(comAchados("e ai?"), List.of()))
+                .isInstanceOf(GuardrailDeFundamentacao.SemFundamentoException.class)
+                .hasMessageContaining("1.4.3");
+
+        // A chamada aconteceu e foi paga: o custo entra no contador mesmo com a
+        // resposta descartada. Nao cobrar aqui deixaria uma forma de gastar sem
+        // aparecer no teto.
+        verify(contador).registrar(0L);
+    }
+
+    @Test
+    @DisplayName("o historico chega ao provider como ele foi passado")
+    void historicoChegaAoProvider() {
+        List<AiProvider.Turno> historico = List.of(
+                new AiProvider.Turno(AiProvider.Turno.Papel.USUARIO, "primeira"),
+                new AiProvider.Turno(AiProvider.Turno.Papel.ASSISTENTE, "resposta"));
+
+        gateway.conversar(comAchados("segunda"), historico);
+
+        assertThat(provider.ultimoHistorico).hasSize(2);
+        assertThat(provider.ultimoHistorico.getFirst().texto()).isEqualTo("primeira");
     }
 }

@@ -116,6 +116,50 @@ public class GuardrailDeFundamentacao {
                 resposta.custoEstimadoEmCentavos());
     }
 
+    /**
+     * Confere a resposta de um turno de conversa (Slice 7).
+     *
+     * <p><b>Aqui a recusa e da resposta INTEIRA, e nao um descarte item a item.</b>
+     * A diferenca nao e rigor a mais: e a forma do dado. Recomendacao vem em
+     * lista presa a {@code regraId}, entao da para jogar fora a alucinada e
+     * entregar as quatro corretas. Conversa vem em texto corrido — cortar a
+     * frase que cita um criterio inventado deixaria o resto do paragrafo
+     * apoiado nela, e o usuario leria um texto que perdeu a premissa sem
+     * perceber.
+     *
+     * <p>Recusar por inteiro e a saida honesta: o usuario ve que nao houve
+     * resposta, em vez de ler uma resposta remendada.
+     *
+     * @throws SemFundamentoException quando o texto cita criterio ausente da analise
+     */
+    public @NonNull RespostaDeConversa conferirSaidaDeConversa(
+            AiProvider.@NonNull Fundamento fundamento,
+            @NonNull RespostaDeConversa resposta) {
+
+        Set<String> criteriosDaAnalise = fundamento.achados().stream()
+                .map(AiProvider.Fundamento.Achado::criterioWcag)
+                .collect(Collectors.toSet());
+
+        List<String> semBase = new java.util.ArrayList<>();
+        Matcher achador = CRITERIO.matcher(resposta.textoOuVazio());
+        while (achador.find()) {
+            String citado = achador.group(1);
+            if (!criteriosDaAnalise.contains(citado)) {
+                semBase.add(citado);
+            }
+        }
+
+        if (!semBase.isEmpty()) {
+            log.warn("GUARDRAIL: resposta de conversa recusada na analise {} por citar {}, "
+                    + "ausente(s) da analise. Provider: {}",
+                    fundamento.analiseId(), semBase, resposta.modelo());
+            throw new SemFundamentoException(
+                    "a resposta citou " + String.join(", ", semBase)
+                            + ", que esta analise nao verificou, e foi descartada");
+        }
+        return resposta;
+    }
+
     /** A pergunta nao tem base no que foi medido. */
     public static class SemFundamentoException extends RuntimeException {
         public SemFundamentoException(String motivo) {

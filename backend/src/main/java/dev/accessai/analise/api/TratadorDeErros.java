@@ -3,6 +3,7 @@ package dev.accessai.analise.api;
 import dev.accessai.analise.app.AnaliseNaoEncontradaException;
 import dev.accessai.analise.app.DocumentoInvalidoException;
 import dev.accessai.autenticacao.LimitadorDeUpload;
+import dev.accessai.copiloto.ServicoDeConversa;
 import dev.accessai.ia.ContadorDeGastoDeIa;
 import dev.accessai.ia.GuardrailDeFundamentacao;
 import dev.accessai.ia.ServicoDeRecomendacoes;
@@ -112,6 +113,23 @@ public class TratadorDeErros {
             ServicoDeRecomendacoes.AnaliseNaoConcluidaException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new AnaliseDto.Erro("ANALISE_NAO_CONCLUIDA", e.getMessage()));
+    }
+
+    @ExceptionHandler(ServicoDeConversa.AnaliseNaoConversavelException.class)
+    public @NonNull ResponseEntity<AnaliseDto.Erro> analiseNaoConversavel(
+            ServicoDeConversa.AnaliseNaoConversavelException e) {
+        // Mesmo 409 e mesmo codigo da recomendacao: para quem consome a API, a
+        // situacao e identica — a analise ainda nao terminou. Dois codigos para
+        // a mesma causa obrigariam o cliente a tratar as duas.
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new AnaliseDto.Erro("ANALISE_NAO_CONCLUIDA", e.getMessage()));
+    }
+
+    @ExceptionHandler(ServicoDeConversa.PerguntaVaziaException.class)
+    public @NonNull ResponseEntity<AnaliseDto.Erro> perguntaVazia(
+            ServicoDeConversa.PerguntaVaziaException e) {
+        return ResponseEntity.unprocessableContent()
+                .body(new AnaliseDto.Erro("PERGUNTA_VAZIA", e.getMessage()));
     }
 
     @ExceptionHandler(ContadorDeGastoDeIa.ContadorIndisponivelException.class)

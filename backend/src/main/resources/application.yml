@@ -84,6 +84,14 @@ accessai:
     # fixture, ele nunca sai de zero.
     teto-mensal-em-centavos: ${ACCESSAI_IA_TETO_CENTAVOS:1000}
 
+  copiloto:
+    # Quantas falas anteriores voltam para o prompt a cada turno. Recorte de
+    # ENVIO, e nao de retencao (ADR 0013): o historico inteiro continua gravado e
+    # continua sendo devolvido no GET. Com provider pago, mandar a conversa
+    # inteira a cada turno faria o custo crescer com o quadrado do numero de
+    # turnos. 10 sao cinco perguntas com suas respostas — escolha, nao medida.
+    turnos-de-contexto: ${ACCESSAI_COPILOTO_TURNOS_CONTEXTO:10}
+
   rate-limit:
     # 30 uploads por hora por conta. O numero nao vem de medicao — nao ha
     # trafego para medir — e sim de ordem de grandeza: uma pessoa auditando

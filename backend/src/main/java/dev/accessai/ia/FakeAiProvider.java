@@ -95,4 +95,36 @@ public class FakeAiProvider implements AiProvider {
         // Custo zero, e nao "custo desconhecido": nenhuma chamada paga aconteceu.
         return new RespostaDeIa(recomendacoes, Procedencia.FIXTURE, NOME, 0L);
     }
+
+    /**
+     * Resposta de conversa derivada dos achados, nunca inventada.
+     *
+     * <p>Ela e deliberadamente mecanica: enumera o que a analise encontrou e diz
+     * que nao ha mais nada medido. Escrever aqui algo que PARECA conversa seria
+     * construir uma demonstracao que some no dia do provider real — e o §1
+     * proibe apresentar template como IA. O que sustenta a slice nao e este
+     * texto: e o guardrail, o teto e o historico ao redor dele.
+     *
+     * <p>O {@code historico} entra so na contagem. Um fake nao tem como
+     * "lembrar" de nada, e simular memoria aqui produziria uma conversa que
+     * parece funcionar por um motivo que nao existe.
+     */
+    @Override
+    public @NonNull RespostaDeConversa conversar(@NonNull Fundamento fundamento,
+                                                 @NonNull List<Turno> historico,
+                                                 @NonNull String prompt) {
+        String problemas = fundamento.achados().stream()
+                .map(a -> a.regraId() + " (" + a.criterioWcag() + ")")
+                .distinct()
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("");
+
+        String texto = "Esta analise encontrou: " + problemas
+                + ". Posso falar sobre esses itens e sobre o que cada um significa "
+                + "para quem usa leitor de tela. Fora deles, nada foi medido neste "
+                + "documento — e sobre o que nao foi medido eu nao respondo."
+                + (historico.isEmpty() ? "" : " (turno " + (historico.size() / 2 + 1) + ")");
+
+        return new RespostaDeConversa(texto, Procedencia.FIXTURE, NOME, 0L);
+    }
 }

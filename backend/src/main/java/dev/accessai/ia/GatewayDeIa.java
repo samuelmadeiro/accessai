@@ -1,5 +1,6 @@
 package dev.accessai.ia;
 
+import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -57,6 +58,40 @@ public class GatewayDeIa {
         RespostaDeIa filtrada = guardrail.filtrarSaida(fundamento, bruta);
         registrar(fundamento.analiseId(), filtrada);
         return filtrada;
+    }
+
+    /**
+     * Um turno de conversa sobre a analise (Slice 7, ADR 0012).
+     *
+     * <p>Mesmas quatro etapas, na mesma ordem, e isso e o ponto: o copiloto nao
+     * ganhou um caminho proprio para o modelo. Ele passa pelo guardrail de
+     * entrada, pelo teto de gasto e pelo guardrail de saida exatamente como a
+     * recomendacao passa.
+     *
+     * <p><b>Por turno, e nao por conversa.</b> Conferir so na abertura deixaria
+     * o segundo turno entrar sem verificacao — e e no segundo que a pergunta
+     * fora de escopo aparece, depois de o primeiro ter estabelecido confianca.
+     * O teto de gasto pelo mesmo motivo: multi-turno cobra por turno.
+     *
+     * @param historico turnos anteriores, ja recortados por quem chama
+     */
+    public @NonNull RespostaDeConversa conversar(AiProvider.@NonNull Fundamento fundamento,
+                                                 @NonNull List<AiProvider.Turno> historico) {
+        guardrail.conferirEntrada(fundamento);
+        contador.conferir();
+
+        RespostaDeConversa bruta = provider.conversar(fundamento, historico,
+                montador.montarConversa(fundamento, historico));
+        contador.registrar(bruta.custoEstimadoEmCentavos());
+
+        // Recusa por inteiro, e nao filtro: conversa e texto corrido, sem item
+        // a descartar. O motivo esta no guardrail.
+        RespostaDeConversa conferida = guardrail.conferirSaidaDeConversa(fundamento, bruta);
+        log.info("turno de conversa respondido para analiseId={}: procedencia={}, "
+                + "modelo={}, historico={} turno(s), custo={} centavo(s)",
+                fundamento.analiseId(), conferida.procedencia(), conferida.modelo(),
+                historico.size(), conferida.custoEstimadoEmCentavos());
+        return conferida;
     }
 
     /**

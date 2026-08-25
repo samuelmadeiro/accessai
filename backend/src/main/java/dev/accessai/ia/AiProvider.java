@@ -49,6 +49,55 @@ public interface AiProvider {
     @NonNull RespostaDeIa recomendar(@NonNull Fundamento fundamento, @NonNull String prompt);
 
     /**
+     * Responde a um turno de conversa sobre a analise (Slice 7, ADR 0012).
+     *
+     * <p><b>Isto ESTENDE a porta unica; nao abre uma segunda.</b> O copiloto
+     * podia ter ganhado a sua propria interface — e teria, se a fronteira do §5
+     * fosse "cada caso de uso fala com o seu modelo". Ela nao e: existe uma
+     * porta, e trocar de provider, medir custo e testar sem rede continuam sendo
+     * a mesma mudanca num lugar so.
+     *
+     * <p>O {@code fundamento} continua sendo o mesmo tipo do caminho de
+     * recomendacao, e pelo mesmo motivo: e o que impede qualquer chamador de
+     * mandar texto livre ao modelo. O que muda e o {@code historico}, que a
+     * chamada unica nao tinha.
+     *
+     * @param fundamento os achados reais da analise, ja sanitizados
+     * @param historico  turnos anteriores, do mais antigo para o mais novo, ja
+     *     recortados pelo gateway. Vem sanitizado por {@link Turno}
+     * @param prompt     montado por {@link MontadorDePrompt}, como no
+     *     {@code recomendar}: nenhum provider monta o seu proprio
+     */
+    @NonNull RespostaDeConversa conversar(@NonNull Fundamento fundamento,
+                                          @NonNull List<Turno> historico,
+                                          @NonNull String prompt);
+
+    /**
+     * Um turno ja dito, de qualquer um dos dois lados.
+     *
+     * <p>Sanitizado no construtor compacto, como {@link Fundamento} — e pela
+     * mesma razao. Em multi-turno isso vale MAIS, e nao menos: o texto do
+     * usuario volta ao prompt a cada turno seguinte, entao uma injecao que
+     * passasse uma vez seria reenviada em todas as chamadas seguintes da
+     * conversa.
+     *
+     * <p>A fala do assistente tambem passa pelo filtro. Ela e nossa saida, mas
+     * quando o provider for generativo ela e, na origem, texto de modelo — e
+     * modelo induzido por injecao pode repetir o que recebeu.
+     */
+    record Turno(Papel papel, String texto) {
+
+        public enum Papel {
+            USUARIO,
+            ASSISTENTE
+        }
+
+        public Turno {
+            texto = ConteudoNaoConfiavel.sanitizar(texto);
+        }
+    }
+
+    /**
      * O material da analise que a IA pode usar — e nada alem dele.
      *
      * @param analiseId  para o registro

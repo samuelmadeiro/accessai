@@ -68,6 +68,34 @@ class FakeAiProviderTest {
                 .satisfies(r -> assertThat(r.texto()).isNotBlank());
     }
 
+    @Test
+    @DisplayName("conversa declara FIXTURE e custo zero, e so cita o que a analise tem")
+    void conversaDeclaraProcedencia() {
+        RespostaDeConversa resposta = provider.conversar(
+                comAchados("IMAGEM_SEM_TEXTO_ALTERNATIVO"), List.of(), "prompt");
+
+        assertThat(resposta.procedencia()).isEqualTo(AiProvider.Procedencia.FIXTURE);
+        // Custo zero, e nao desconhecido: nenhuma chamada paga aconteceu.
+        assertThat(resposta.custoEstimadoEmCentavos()).isZero();
+        assertThat(resposta.texto())
+                .contains("IMAGEM_SEM_TEXTO_ALTERNATIVO")
+                .contains("1.1.1");
+    }
+
+    @Test
+    @DisplayName("a fixture nao inventa criterio: passa pelo guardrail de saida por construcao")
+    void conversaPassaNoGuardrail() {
+        AiProvider.Fundamento fundamento = comAchados("IMAGEM_SEM_TEXTO_ALTERNATIVO");
+
+        RespostaDeConversa resposta = provider.conversar(fundamento, List.of(), "prompt");
+
+        // Passar por construcao NAO dispensa o guardrail: ele existe para o
+        // provider generativo que ainda vai chegar.
+        assertThat(new GuardrailDeFundamentacao()
+                .conferirSaidaDeConversa(fundamento, resposta))
+                .isSameAs(resposta);
+    }
+
     private static AiProvider.Fundamento comAchados(String... regras) {
         return new AiProvider.Fundamento(UUID.randomUUID(),
                 java.util.Arrays.stream(regras)
