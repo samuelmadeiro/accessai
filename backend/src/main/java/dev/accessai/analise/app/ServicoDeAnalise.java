@@ -71,14 +71,14 @@ public class ServicoDeAnalise {
      * cabecalho {@code X-Correlation-ID} — ou gerado, quando o cliente nao
      * manda. Assim a jornada do cliente e a jornada interna sao a mesma.
      */
-    public ResultadoDoRecebimento receber(byte[] conteudo, String nomeArquivo) {
+    public ResultadoDoRecebimento receber(UUID ownerId, byte[] conteudo, String nomeArquivo) {
         String tipoDetectado = validador.detectarTipo(conteudo);
         String sha256 = calcularSha256(conteudo);
         UUID correlationId = Correlacao.atualComoUuid();
         Instant agora = clock.instant();
 
-        Analise analise = registro.registrar(conteudo, nomeArquivo, tipoDetectado, sha256,
-                correlationId, agora);
+        Analise analise = registro.registrar(ownerId, conteudo, nomeArquivo, tipoDetectado,
+                sha256, correlationId, agora);
 
         return new ResultadoDoRecebimento(analise.getId(), correlationId, analise.getSituacao());
     }
@@ -95,8 +95,13 @@ public class ServicoDeAnalise {
      * que ninguem processou seria afirmar conformidade sem verificacao.
      */
     @Transactional(readOnly = true)
-    public VisaoDaAnalise buscar(UUID analiseId) {
-        Analise analise = analiseRepository.findById(analiseId)
+    public VisaoDaAnalise buscar(UUID analiseId, UUID ownerId) {
+        // `findByIdAndOwnerId`, e nao `findById` seguido de comparacao: a
+        // comparacao depende de alguem lembrar de escreve-la, e esquece-la nao
+        // quebra teste nenhum — so vaza a analise de outra pessoa. Analise de
+        // outro dono cai no MESMO caminho de "nao existe", e o cliente recebe
+        // 404: um 403 aqui confirmaria que o recurso existe.
+        Analise analise = analiseRepository.findByIdAndOwnerId(analiseId, ownerId)
                 .orElseThrow(() -> new AnaliseNaoEncontradaException(analiseId));
         List<Problema> problemas = problemaRepository.findByAnaliseIdOrderByCriadoEmAsc(analiseId);
 

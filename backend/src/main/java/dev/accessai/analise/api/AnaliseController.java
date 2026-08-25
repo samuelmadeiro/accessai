@@ -1,5 +1,6 @@
 package dev.accessai.analise.api;
 
+import dev.accessai.autenticacao.UsuarioAutenticado;
 import dev.accessai.analise.app.DocumentoInvalidoException;
 import dev.accessai.analise.app.ServicoDeAnalise;
 import java.io.IOException;
@@ -40,14 +41,16 @@ public class AnaliseController {
             throw new DocumentoInvalidoException("nenhum conteudo enviado");
         }
 
-        var resultado = servico.receber(arquivo.getBytes(), nomeSeguro(arquivo));
+        var resultado = servico.receber(UsuarioAutenticado.id(), arquivo.getBytes(),
+                nomeSeguro(arquivo));
         var corpo = AnaliseDto.RespostaDeRecebimento.de(resultado);
         return ResponseEntity.created(URI.create("/analyses/" + corpo.analiseId())).body(corpo);
     }
 
     @GetMapping("/{id}")
     public AnaliseDto.RespostaDeAnalise buscar(@PathVariable("id") UUID id) {
-        return AnaliseDto.RespostaDeAnalise.de(servico.buscar(id));
+        return AnaliseDto.RespostaDeAnalise.de(
+                servico.buscar(id, UsuarioAutenticado.id()));
     }
 
     private static @NonNull String nomeSeguro(@NonNull MultipartFile arquivo) {

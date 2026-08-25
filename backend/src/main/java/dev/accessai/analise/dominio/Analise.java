@@ -28,6 +28,17 @@ public class Analise {
     @Column(name = "correlation_id", nullable = false, updatable = false)
     private UUID correlationId;
 
+    /**
+     * Dono da analise (D4). Isolamento por linha, aplicado em
+     * {@code findByIdAndOwnerId} — nunca em filtro global do Hibernate.
+     *
+     * <p>{@code updatable = false}: analise nao troca de dono. Se um dia
+     * precisar, isso e transferencia de propriedade e merece caso de uso
+     * proprio, com registro — nao um `setter`.
+     */
+    @Column(name = "owner_id", nullable = false, updatable = false)
+    private UUID ownerId;
+
     @Column(name = "nome_arquivo", nullable = false)
     private String nomeArquivo;
 
@@ -54,9 +65,11 @@ public class Analise {
     protected Analise() {// exigido pelo JPA
          }
 
-    private Analise(UUID id, UUID correlationId, String nomeArquivo, String tipoMimeDetectado,
-                    long tamanhoBytes, String sha256, Instant agora) {
+    private Analise(UUID id, UUID ownerId, UUID correlationId, String nomeArquivo,
+                    String tipoMimeDetectado, long tamanhoBytes, String sha256,
+                    Instant agora) {
         this.id = id;
+        this.ownerId = ownerId;
         this.correlationId = correlationId;
         this.nomeArquivo = nomeArquivo;
         this.tipoMimeDetectado = tipoMimeDetectado;
@@ -67,10 +80,11 @@ public class Analise {
         this.atualizadaEm = agora;
     }
 
-    public static @NonNull Analise receber(UUID correlationId, String nomeArquivo, String tipoMimeDetectado,
+    public static @NonNull Analise receber(UUID ownerId, UUID correlationId,
+                                           String nomeArquivo, String tipoMimeDetectado,
                                            long tamanhoBytes, String sha256, Instant agora) {
-        return new Analise(UUID.randomUUID(), correlationId, nomeArquivo, tipoMimeDetectado,
-                tamanhoBytes, sha256, agora);
+        return new Analise(UUID.randomUUID(), ownerId, correlationId, nomeArquivo,
+                tipoMimeDetectado, tamanhoBytes, sha256, agora);
     }
 
     public void marcarProcessando(Instant agora) {
@@ -96,6 +110,10 @@ public class Analise {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getOwnerId() {
+        return ownerId;
     }
 
     public UUID getCorrelationId() {

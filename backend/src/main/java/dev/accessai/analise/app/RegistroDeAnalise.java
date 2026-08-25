@@ -51,11 +51,13 @@ public class RegistroDeAnalise {
     }
 
     @Transactional
-    public @NonNull Analise registrar(byte @NonNull [] conteudo, @NonNull String nomeArquivo,
+    public @NonNull Analise registrar(@NonNull UUID ownerId, byte @NonNull [] conteudo,
+                                      @NonNull String nomeArquivo,
                                       @NonNull String tipoDetectado, @NonNull String sha256,
                                       @NonNull UUID correlationId, @NonNull Instant agora) {
         Analise analise = analiseRepository.save(Analise.receber(
-                correlationId, nomeArquivo, tipoDetectado, conteudo.length, sha256, agora));
+                ownerId, correlationId, nomeArquivo, tipoDetectado, conteudo.length,
+                sha256, agora));
         documentoRepository.save(DocumentoBinario.de(analise.getId(), conteudo));
 
         AnaliseSolicitadaV1 evento = AnaliseSolicitadaV1.de(

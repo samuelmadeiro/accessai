@@ -2,6 +2,7 @@ package dev.accessai.analise.api;
 
 import dev.accessai.analise.app.AnaliseNaoEncontradaException;
 import dev.accessai.analise.app.DocumentoInvalidoException;
+import dev.accessai.autenticacao.ServicoDeAutenticacao;
 import dev.accessai.config.PropriedadesAccessAi;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -45,5 +46,29 @@ public class TratadorDeErros {
     public @NonNull ResponseEntity<AnaliseDto.Erro> naoEncontrada(@NonNull AnaliseNaoEncontradaException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new AnaliseDto.Erro("ANALISE_NAO_ENCONTRADA", e.getMessage()));
+    }
+
+    @ExceptionHandler(ServicoDeAutenticacao.CredenciaisInvalidasException.class)
+    public @NonNull ResponseEntity<AnaliseDto.Erro> credenciaisInvalidas(
+            ServicoDeAutenticacao.CredenciaisInvalidasException e) {
+        // Sem log do email tentado: virar registro de "quem tentou entrar" e
+        // dado pessoal acumulado sem necessidade.
+        log.info("login recusado");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new AnaliseDto.Erro("CREDENCIAIS_INVALIDAS", e.getMessage()));
+    }
+
+    @ExceptionHandler(ServicoDeAutenticacao.EmailEmUsoException.class)
+    public @NonNull ResponseEntity<AnaliseDto.Erro> emailEmUso(
+            ServicoDeAutenticacao.EmailEmUsoException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new AnaliseDto.Erro("EMAIL_EM_USO", e.getMessage()));
+    }
+
+    @ExceptionHandler(ServicoDeAutenticacao.SenhaFracaException.class)
+    public @NonNull ResponseEntity<AnaliseDto.Erro> senhaFraca(
+            ServicoDeAutenticacao.SenhaFracaException e) {
+        return ResponseEntity.unprocessableContent()
+                .body(new AnaliseDto.Erro("CADASTRO_INVALIDO", e.getMessage()));
     }
 }

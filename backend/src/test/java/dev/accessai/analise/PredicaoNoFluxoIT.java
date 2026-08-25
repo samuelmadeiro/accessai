@@ -7,6 +7,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.sun.net.httpserver.HttpServer;
+import dev.accessai.apoio.SegredoDeTeste;
+import dev.accessai.apoio.TokenDeTeste;
 import dev.accessai.analise.api.AnaliseDto;
 import dev.accessai.analise.dominio.AnaliseRepository;
 import dev.accessai.analise.dominio.SituacaoAnalise;
@@ -114,6 +116,9 @@ class PredicaoNoFluxoIT {
     @DynamicPropertySource
     static void configurar(DynamicPropertyRegistry registro) {
         registro.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+        // Sem segredo o contexto nao sobe — e proposital: um padrao de
+        // desenvolvimento aqui viraria segredo publicado no GitHub.
+        registro.add("accessai.jwt.segredo", SegredoDeTeste::valor);
         registro.add("accessai.ml-service.url",
                 () -> "http://127.0.0.1:" + mlFalso.getAddress().getPort());
     }
@@ -130,6 +135,8 @@ class PredicaoNoFluxoIT {
     void preparar() {
         http = RestClient.builder()
                 .baseUrl("http://localhost:" + porta)
+                // Toda rota de analise exige autenticacao desde a Slice 5A.
+                .defaultHeader("Authorization", "Bearer " + TokenDeTeste.novaConta(porta))
                 .defaultStatusHandler(status -> true, (requisicao, res) -> { })
                 .build();
         chamadas.set(0);

@@ -36,6 +36,25 @@
     </dependency>
 
     <!--
+      Slice 5A. O resource-server e quem valida o JWT; nenhuma biblioteca de
+      terceiro (jjwt, auth0) entra: o Nimbus ja vem com ele, e uma dependencia a
+      menos e uma superficie de CVE a menos no caminho de autenticacao, que e
+      justamente onde CVE dói.
+
+      Sem `spring-boot-starter-oauth2-authorization-server`: nao ha OAuth aqui.
+      O token e emitido pelo proprio backend com segredo simetrico (HS256),
+      porque nao existe segundo servico que precise validar por chave publica.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
+
+    <!--
       Mesma armadilha do Flyway: spring-kafka e a biblioteca; a autoconfiguracao
       que le spring.kafka.* e cria KafkaTemplate e a fabrica de @KafkaListener
       vem deste modulo. Tambem nao ha starter.

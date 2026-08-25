@@ -10,6 +10,8 @@ import static dev.accessai.analise.extracao.DocxDeTeste.tabela;
 import static dev.accessai.analise.extracao.DocxDeTeste.tituloPorEstilo;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.accessai.apoio.SegredoDeTeste;
+import dev.accessai.apoio.TokenDeTeste;
 import dev.accessai.analise.api.AnaliseDto;
 import dev.accessai.analise.extracao.DocxDeTeste;
 import java.time.Duration;
@@ -80,6 +82,9 @@ class AnaliseFluxoCompletoIT {
     @DynamicPropertySource
     static void apontarKafka(DynamicPropertyRegistry registro) {
         registro.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+        // Sem segredo o contexto nao sobe — e proposital: um padrao de
+        // desenvolvimento aqui viraria segredo publicado no GitHub.
+        registro.add("accessai.jwt.segredo", SegredoDeTeste::valor);
     }
 
     @LocalServerPort
@@ -94,6 +99,8 @@ class AnaliseFluxoCompletoIT {
         // justamente o que precisa ser verificado.
         http = RestClient.builder()
                 .baseUrl("http://localhost:" + porta)
+                // Toda rota de analise exige autenticacao desde a Slice 5A.
+                .defaultHeader("Authorization", "Bearer " + TokenDeTeste.novaConta(porta))
                 .defaultStatusHandler(status -> true, (requisicao, resposta) -> { })
                 .build();
     }

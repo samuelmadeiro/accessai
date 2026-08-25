@@ -72,6 +72,12 @@ management:
         enabled: true
 
 accessai:
+  jwt:
+    # Sem valor padrao de proposito: sem ACCESSAI_JWT_SECRET a aplicacao NAO
+    # sobe. Um padrao de desenvolvimento aqui seria um segredo publicado no
+    # GitHub que alguem usaria em producao sem perceber.
+    segredo: ${ACCESSAI_JWT_SECRET}
+
   upload:
     # Quem enforca e o multipart do Spring (acima). Este valor tambem e lido
     # pelo tratador de erros, para que a mensagem de recusa cite o limite real

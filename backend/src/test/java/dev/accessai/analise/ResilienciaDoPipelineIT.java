@@ -9,6 +9,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 
+import dev.accessai.apoio.SegredoDeTeste;
+import dev.accessai.apoio.TokenDeTeste;
 import dev.accessai.analise.api.AnaliseDto;
 import dev.accessai.analise.app.ExecucaoDaAnalise;
 import dev.accessai.analise.dominio.AnaliseRepository;
@@ -78,6 +80,9 @@ class ResilienciaDoPipelineIT {
     @DynamicPropertySource
     static void apontarKafka(DynamicPropertyRegistry registro) {
         registro.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+        // Sem segredo o contexto nao sobe — e proposital: um padrao de
+        // desenvolvimento aqui viraria segredo publicado no GitHub.
+        registro.add("accessai.jwt.segredo", SegredoDeTeste::valor);
         // Backoff curto: o teste precisa ver o retry acontecer, nao esperar por ele.
         registro.add("accessai.kafka.retry.tentativas", () -> 3);
         registro.add("accessai.kafka.retry.intervalo-inicial-ms", () -> 200);
@@ -122,6 +127,8 @@ class ResilienciaDoPipelineIT {
     void prepararCliente() {
         http = RestClient.builder()
                 .baseUrl("http://localhost:" + porta)
+                // Toda rota de analise exige autenticacao desde a Slice 5A.
+                .defaultHeader("Authorization", "Bearer " + TokenDeTeste.novaConta(porta))
                 .defaultStatusHandler(status -> true, (requisicao, resposta) -> { })
                 .build();
     }
