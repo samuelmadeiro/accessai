@@ -261,6 +261,16 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 > As cinco invariantes do ADR 0012 são travadas por
 > `ArquiteturaDaIaTest`, e não por convenção. A prioridade da 8 sobre a 7 não
 > mudou.
+>
+> **A Slice 7 está FECHADA.** `POST` e `GET /analyses/{id}/chat`, com histórico
+> em `turno_de_conversa`. O critério — guardrail testado, com histórico — está
+> provado em `ConversaNoFluxoIT`, e o journal está em `docs/journal/07-slice.md`.
+>
+> **Nenhum modelo foi consultado**, como na 6: o `FakeAiProvider` responde e toda
+> fala do assistente declara `procedencia: "FIXTURE"`. O que a slice prova é a
+> moldura — porta única estendida em vez de duplicada, guardrail rodando **por
+> turno** e não uma vez por conversa, teto de gasto, histórico e procedência —,
+> não a qualidade da conversa. Isso continua travado no ADR 0005.
 
 Regra: **um slice por vez, commitado e verde antes do próximo.** Se eu pedir
 para pular, me lembre desta linha.

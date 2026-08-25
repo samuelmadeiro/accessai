@@ -5,7 +5,7 @@ para critérios WCAG, com evidência rastreável até o ponto exato do documento
 
 ---
 
-## Estado atual: Slices 0 a 6 fechadas
+## Estado atual: Slices 0 a 7 fechadas
 
 Este README descreve **o que existe e roda hoje**, não o que está planejado.
 O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma por vez.
@@ -265,6 +265,11 @@ algo com infraestrutura real:
   `procedencia: FIXTURE`, o **critério de pronto da Slice 6** (pergunta sem base
   na análise → recusa), documento limpo que não rende recomendação, geração
   idempotente, leitura sem chamar a IA, e recomendação de outro usuário em `404`.
+- **Conversa** (7) — o **critério de pronto da Slice 7**: pergunta sem base
+  recusada **no segundo turno**, com o primeiro já respondido, e histórico
+  acumulando as duas pontas em ordem. Mais: turno recusado que não grava nem a
+  pergunta, documento limpo que não rende conversa, turno sem pergunta em `422`,
+  e conversa de outro usuário em `404` no POST e no GET.
 
 A falha transitória é forçada com um espião sobre `ExecucaoDaAnalise`: derrubar o
 Postgres no meio do teste produziria a mesma exceção com um teste lento e
@@ -277,11 +282,17 @@ acontece dentro do `poll()` e o container repolla o mesmo offset para sempre. O
 tópico roda com uma partição só nesse cenário — com três, o lixo e o documento
 cairiam em partições diferentes e o teste passaria sem provar nada.
 
-Além deles, **231 testes unitários** que não precisam de Docker e rodam em
+Além deles, **248 testes unitários** que não precisam de Docker e rodam em
 segundos: extrator e os sete coletores, uma suíte por regra (cada uma com o caso
 de conformidade que ela precisa **não** marcar), calculadora de score, catálogo
-WCAG, cliente do ML Service, o guardrail de IA, a sanitização de prompt e o
-corpus de contrato da heurística. No `ml-service/`, **404 testes** de pytest.
+WCAG, cliente do ML Service, o guardrail de IA (na recomendação e na conversa), a
+sanitização de prompt, as regras de arquitetura do ADR 0012 e o corpus de
+contrato da heurística.
+
+> **Cuidado ao ler o `BUILD SUCCESS`.** Sem Docker no ar, os testes ponta a ponta
+> são **pulados** e o build passa assim mesmo — `Skipped: 34` e `Failures: 0` dão
+> o mesmo exit code de 34 verdes. Confira a contagem
+> ([issue #1](https://github.com/samuelmadeiro/accessai/issues/1)). No `ml-service/`, **404 testes** de pytest.
 
 **O segredo do JWT nos testes é gerado, não escrito.** O §5 diz "zero hardcode,
 inclusive em teste" — segredo literal num `application.yml` de teste é segredo
@@ -349,6 +360,11 @@ GET /analyses/{id}        findByIdAndOwnerId ──► 404 se não for sua
 POST /analyses/{id}/recommendations                            (Slice 6)
       └─ AI Gateway ─ guardrail de entrada ─ teto de gasto ─ provider ─
                                              guardrail de saída ──► recomendacao
+
+POST /analyses/{id}/chat                                       (Slice 7)
+      └─ mesmo gateway, mesmas quatro etapas, A CADA TURNO ──► turno_de_conversa
+GET  /analyses/{id}/chat
+      └─ histórico das duas pontas, com procedencia em cada fala do assistente
 ```
 
 ### A fronteira entre os dois runtimes
@@ -659,7 +675,16 @@ descuido:
   sintéticas e presas ao treino; sobra **uma** em validação e uma em teste. A
   F1 de 0,000 ali significa "errou a única que existia", não "não detecta" — e
   a classe que o produto mais precisa é a que o corpus menos sustenta.
-- **Nenhum LLM é chamado.** O provider é fixture, declarado como tal.
+- **Nenhum LLM é chamado.** O provider é fixture, declarado como tal — na
+  recomendação e também no copiloto conversacional.
+- **O copiloto não conversa sobre documento limpo.** Sem achado não há
+  fundamento, e o guardrail recusa a conversa inteira. Intencional (ADR 0012):
+  sobre resultado limpo só sairia conselho genérico apresentado como análise
+  deste documento.
+- **`/chat` não tem rate limit.** O limitador da Slice 5A é por upload. Um turno
+  é gratuito enquanto o provider for fixture; deixa de ser no dia do ADR 0005.
+- **O teto de gasto foi estimado sobre chamada única.** Multi-turno reenvia
+  contexto a cada turno, e a conta precisa ser refeita com provider real.
 - **O guardrail de entrada é sintático.** Ele casa número de critério; "por que
   as cores estão ruins?" passa e é o guardrail de saída que segura.
 - **A heurística existe em duas linguagens.** Risco real, pago com um corpus de
