@@ -22,7 +22,8 @@ class GatewayDeIaTest {
     private final ContadorDeGastoDeIa contador = mock(ContadorDeGastoDeIa.class);
     private final ProviderEspiao provider = new ProviderEspiao();
     private final GatewayDeIa gateway =
-            new GatewayDeIa(provider, new GuardrailDeFundamentacao(), contador);
+            new GatewayDeIa(provider, new GuardrailDeFundamentacao(), contador,
+                    new MontadorDePrompt());
 
     @Test
     @DisplayName("guardrail vem ANTES do provider: pergunta sem base nao chega ao modelo")
@@ -91,7 +92,7 @@ class GatewayDeIaTest {
         }
 
         @Override
-        public RespostaDeIa recomendar(Fundamento fundamento) {
+        public RespostaDeIa recomendar(Fundamento fundamento, String prompt) {
             chamadas++;
             String regra = inventar ? "REGRA_ALUCINADA" : "IMAGEM_SEM_TEXTO_ALTERNATIVO";
             return new RespostaDeIa(

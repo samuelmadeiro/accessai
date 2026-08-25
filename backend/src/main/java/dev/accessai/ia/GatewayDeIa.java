@@ -34,19 +34,24 @@ public class GatewayDeIa {
     private final AiProvider provider;
     private final GuardrailDeFundamentacao guardrail;
     private final ContadorDeGastoDeIa contador;
+    private final MontadorDePrompt montador;
 
     public GatewayDeIa(AiProvider provider, GuardrailDeFundamentacao guardrail,
-                       ContadorDeGastoDeIa contador) {
+                       ContadorDeGastoDeIa contador, MontadorDePrompt montador) {
         this.provider = provider;
         this.guardrail = guardrail;
         this.contador = contador;
+        this.montador = montador;
     }
 
     public @NonNull RespostaDeIa recomendar(AiProvider.@NonNull Fundamento fundamento) {
         guardrail.conferirEntrada(fundamento);
         contador.conferir();
 
-        RespostaDeIa bruta = provider.recomendar(fundamento);
+        // O prompt e montado AQUI, nao no provider: conteudo nao confiavel
+        // encosta na instrucao num lugar so.
+        RespostaDeIa bruta = provider.recomendar(fundamento,
+                montador.montar(fundamento));
         contador.registrar(bruta.custoEstimadoEmCentavos());
 
         RespostaDeIa filtrada = guardrail.filtrarSaida(fundamento, bruta);

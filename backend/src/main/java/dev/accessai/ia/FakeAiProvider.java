@@ -75,12 +75,18 @@ public class FakeAiProvider implements AiProvider {
     /**
      * Uma recomendacao por achado, na ordem em que os achados chegaram.
      *
+     * <p>O {@code prompt} chega montado e e IGNORADO: nao ha modelo para
+     * manda-lo. Ele esta na assinatura mesmo assim porque o contrato e o mesmo
+     * para todo provider — e porque um fake que aceitasse menos que o real
+     * esconderia, no dia da troca, que a montagem nunca foi exercitada.
+     *
      * <p>Nunca inventa achado. A lista de saida e derivada da de entrada, e e
      * por isso que este provider passa no guardrail por construcao — o que NAO
      * dispensa o guardrail: ele existe para o provider que ainda vai chegar.
      */
     @Override
-    public @NonNull RespostaDeIa recomendar(@NonNull Fundamento fundamento) {
+    public @NonNull RespostaDeIa recomendar(@NonNull Fundamento fundamento,
+                                           @NonNull String prompt) {
         List<RespostaDeIa.Recomendacao> recomendacoes = fundamento.achados().stream()
                 .map(a -> new RespostaDeIa.Recomendacao(
                         a.regraId(), a.criterioWcag(),

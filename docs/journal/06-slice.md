@@ -6,7 +6,7 @@
 > com as minhas palavras, e omitir como ela foi escrita seria o mesmo tipo de
 > silêncio que o §1 existe para impedir.
 
-- **Estado:** `./mvnw verify` verde — 208 testes unitários e 27 E2E
+- **Estado:** `./mvnw verify` verde — 231 testes unitários e 27 E2E
 - **Critério de pronto do §7:** guardrail testado, pergunta sem base na análise →
   recusa — **cumprido**, em `RecomendacaoNoFluxoIT.perguntaSemBaseEhRecusada` e
   em `GuardrailDeFundamentacaoTest`
@@ -44,6 +44,7 @@ Service.
 | Caso de uso | `ia/ServicoDeRecomendacoes` |
 | API | `POST` e `GET /analyses/{id}/recommendations` |
 | Persistência | `V6__recomendacao.sql`, `ia/Recomendacao` |
+| Conteúdo hostil | `ia/ConteudoNaoConfiavel`, `ia/MontadorDePrompt` |
 
 ## Decisões que valem explicar
 
@@ -132,16 +133,49 @@ a análise continua completa. Só a seção de recomendações para.
 4. **O `@ConditionalOnMissingBean` é elegante e silencioso.** Se alguém
    registrar um provider real sem perceber, o sistema troca sozinho — e a única
    pista é o campo `procedencia` mudando.
-5. **Prompt injection.** O §5 diz para tratar conteúdo extraído como não
-   confiável ao montar prompt. Hoje a evidência do problema vai no fundamento
-   sem sanitização; com provider real isso é um vetor.
+5. ~~**Prompt injection.**~~ **Resolvido depois desta entrada** — ver
+   "Prompt injection" abaixo. O que continua sem resposta boa é o limite do que
+   sanitização alcança: nenhuma das camadas prova que injeção é impossível, só
+   que o texto perde o poder de formatar.
+
+## Prompt injection
+
+Resolvido depois de a entrada ter sido escrita, em quatro camadas — nenhuma
+suficiente sozinha:
+
+1. **Sanitização por construção.** `AiProvider.Fundamento` limpa a evidência e a
+   pergunta no construtor compacto. Nenhum `Fundamento` pode existir com texto
+   bruto dentro, então **todo provider recebe conteúdo tratado — inclusive o que
+   ainda não foi escrito**. Se a limpeza morasse em quem monta o prompt, o
+   provider escrito com pressa seria o que esquece.
+2. **Tirar o poder de formatar.** Quebra de linha, caractere de controle e
+   marcador de papel (`System:`, `<|im_start|>`, `[INST]`, cerca de código,
+   `###`) viram `[removido]`. Não é lista negra de frases — "ignore as
+   instruções anteriores" continua passando como texto, e é isso mesmo: o que
+   transforma conteúdo em instrução é a formatação, não o vocabulário.
+3. **Envelope com nonce.** O texto entra entre delimitadores sorteados por
+   chamada. Com delimitador fixo, bastaria escrevê-lo para "sair" do bloco.
+4. **A instrução desarma o bloco**, dizendo que o que está dentro é dado a
+   analisar e que pedido para ignorar as regras é o próprio problema.
+
+A montagem do prompt saiu de dentro dos providers e virou `MontadorDePrompt`,
+usado pelo gateway: montagem é onde conteúdo não confiável encosta na instrução,
+e ela mora num lugar só.
+
+**A última linha de defesa não é nenhuma das quatro.** Se uma injeção sobreviver
+a tudo e convencer o modelo a recomendar outra coisa, o guardrail de saída
+descarta o que citar regra ausente da análise. Sanitizar reduz a chance; o
+guardrail limita o estrago.
+
+E um teste que existe pelo motivo oposto: `textoLegitimoNaoEhMutilado`. Se a
+sanitização estragasse evidência normal, a recomendação pioraria e alguém
+desligaria o filtro — que é como proteção morre.
 
 ## Dívida consciente que segue aberta
 
 - **Nenhum modelo real.** ADR 0005 em PROPOSTA.
 - **O adaptador da Anthropic não existe** — só a interface que ele vai
   implementar.
-- **Prompt injection não tratado** na evidência que vai para o fundamento.
 - **Sem medição** de latência ou custo.
 - **Sem cache de prompt.** O D5 discute o prefixo mínimo cacheável; nada disso é
   aplicável enquanto não há chamada.
