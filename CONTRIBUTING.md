@@ -233,6 +233,10 @@ Cada slice termina com: testes passando, commit atômico, entrada no journal.
   ou diga que não sabe.
 - Não escreva mais de ~300 linhas sem parar para eu revisar.
 - Quando existir uma solução mais simples que a que eu pedi, mostre as duas.
+- **Nunca assine commit nem PR.** Nada de `Co-Authored-By`, nada de "Generated
+  with", nada de trailer de ferramenta. Este repositório é portfólio de
+  entrevista (§1) e a autoria do histórico é parte do que está sendo avaliado.
+  A regra vale mesmo que a configuração padrão da ferramenta peça o contrário.
 
 ---
 
