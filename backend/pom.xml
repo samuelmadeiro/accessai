@@ -171,6 +171,19 @@
       <artifactId>testcontainers-kafka</artifactId>
       <scope>test</scope>
     </dependency>
+    <!--
+      Fora da tabela de stack do CONTRIBUTING.md secao 3, e aprovada antes de
+      entrar. Existe para uma coisa so: as invariantes do ADR 0012 sao sobre
+      DEPENDENCIA entre pacotes, e isso nao se testa com JUnit comum. A
+      alternativa sem dependencia — varrer os .java procurando import proibido —
+      pega o caso comum e perde referencia por nome qualificado.
+    -->
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <version>1.4.1</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
