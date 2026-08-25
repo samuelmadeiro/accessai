@@ -215,6 +215,12 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 > heurística imitada. Enquanto isso não muda, toda predição declara `true`, que
 > é o que impede a canalização de se passar por modelo.
 
+> **A Slice 5A está FECHADA.** Autenticação JWT stateless, `owner_id` em
+> `analise` com isolamento por `findByIdAndOwnerId`, e rate limit de upload por
+> usuário no Redis. O critério de pronto — A recebe 404 na análise de B — está
+> provado em `IsolamentoPorUsuarioIT`, e o journal está em
+> `docs/journal/05a-slice.md`.
+>
 > **Por que a 5A existe, e por que ela é 5A.** O D4 da `fase-0.md` é decisão
 > **aceita** — "toda tabela de domínio tem `owner_id`", isolamento por
 > `findByIdAndOwnerId`, e um teste de 404 cruzado como entregável. Até esta

@@ -78,6 +78,14 @@ accessai:
     # GitHub que alguem usaria em producao sem perceber.
     segredo: ${ACCESSAI_JWT_SECRET}
 
+  rate-limit:
+    # 30 uploads por hora por conta. O numero nao vem de medicao — nao ha
+    # trafego para medir — e sim de ordem de grandeza: uma pessoa auditando
+    # documentos manda dezenas por dia, nao milhares por minuto. Fica em
+    # configuracao, e nao em constante, porque e escolha e nao medida.
+    uploads-por-janela: ${ACCESSAI_RATE_LIMIT_UPLOADS:30}
+    janela-segundos: ${ACCESSAI_RATE_LIMIT_JANELA_SEGUNDOS:3600}
+
   upload:
     # Quem enforca e o multipart do Spring (acima). Este valor tambem e lido
     # pelo tratador de erros, para que a mensagem de recusa cite o limite real

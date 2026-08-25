@@ -101,7 +101,8 @@ class ClienteMlServiceTest {
                         new PropriedadesAccessAi.Score.Pesos(25, 25, 25, 25),
                         new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
                 new PropriedadesAccessAi.Outbox(500, 50, 2_000, 10_000, 10),
-                new PropriedadesAccessAi.MlService(url, 500, readTimeoutMs));
+                new PropriedadesAccessAi.MlService(url, 500, readTimeoutMs),
+                new PropriedadesAccessAi.RateLimit(30, 3600));
         return new ClienteMlService(RestClient.builder(), propriedades,
                 new HeuristicaDeAltLocal());
     }

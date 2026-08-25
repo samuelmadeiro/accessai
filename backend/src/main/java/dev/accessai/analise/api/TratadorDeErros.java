@@ -2,6 +2,7 @@ package dev.accessai.analise.api;
 
 import dev.accessai.analise.app.AnaliseNaoEncontradaException;
 import dev.accessai.analise.app.DocumentoInvalidoException;
+import dev.accessai.autenticacao.LimitadorDeUpload;
 import dev.accessai.autenticacao.ServicoDeAutenticacao;
 import dev.accessai.config.PropriedadesAccessAi;
 import org.jspecify.annotations.NonNull;
@@ -70,5 +71,17 @@ public class TratadorDeErros {
             ServicoDeAutenticacao.SenhaFracaException e) {
         return ResponseEntity.unprocessableContent()
                 .body(new AnaliseDto.Erro("CADASTRO_INVALIDO", e.getMessage()));
+    }
+
+    @ExceptionHandler(LimitadorDeUpload.LimiteDeUploadExcedidoException.class)
+    public @NonNull ResponseEntity<AnaliseDto.Erro> limiteExcedido(
+            LimitadorDeUpload.LimiteDeUploadExcedidoException e) {
+        log.info("upload recusado por rate limit");
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                // `Retry-After` em segundos: sem ele, um cliente automatizado so
+                // pode adivinhar quando tentar de novo — e adivinhar significa
+                // repetir imediatamente, que e o que piora a situacao.
+                .header("Retry-After", String.valueOf(e.esperarSegundos()))
+                .body(new AnaliseDto.Erro("LIMITE_DE_UPLOAD_EXCEDIDO", e.getMessage()));
     }
 }

@@ -1,5 +1,6 @@
 package dev.accessai.analise.api;
 
+import dev.accessai.autenticacao.LimitadorDeUpload;
 import dev.accessai.autenticacao.UsuarioAutenticado;
 import dev.accessai.analise.app.DocumentoInvalidoException;
 import dev.accessai.analise.app.ServicoDeAnalise;
@@ -28,9 +29,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class AnaliseController {
 
     private final ServicoDeAnalise servico;
+    private final LimitadorDeUpload limitador;
 
-    public AnaliseController(ServicoDeAnalise servico) {
+    public AnaliseController(ServicoDeAnalise servico, LimitadorDeUpload limitador) {
         this.servico = servico;
+        this.limitador = limitador;
     }
 
     @PostMapping
@@ -41,8 +44,13 @@ public class AnaliseController {
             throw new DocumentoInvalidoException("nenhum conteudo enviado");
         }
 
-        var resultado = servico.receber(UsuarioAutenticado.id(), arquivo.getBytes(),
-                nomeSeguro(arquivo));
+        UUID dono = UsuarioAutenticado.id();
+        // O limite e cobrado ANTES de ler os bytes e validar o pacote: contar
+        // depois faria o trabalho caro acontecer mesmo para quem ja passou do
+        // teto, que e exatamente o que o limite existe para evitar.
+        limitador.registrar(dono);
+
+        var resultado = servico.receber(dono, arquivo.getBytes(), nomeSeguro(arquivo));
         var corpo = AnaliseDto.RespostaDeRecebimento.de(resultado);
         return ResponseEntity.created(URI.create("/analyses/" + corpo.analiseId())).body(corpo);
     }

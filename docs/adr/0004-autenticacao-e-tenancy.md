@@ -1,9 +1,12 @@
 # ADR 0004 - Autenticacao e isolamento por linha
 
-- **Status:** aceita — implementacao pendente, agendada para a **Slice 5A** do
-  `CONTRIBUTING.md` §7. Ate a Slice 5 nenhuma tabela tem `owner_id`, e o teste
-  de 404 cruzado que e o entregavel desta decisao nao existe. A slice foi criada
-  justamente porque a decisao estava aceita sem dono no plano.
+- **Status:** aceita e **implementada na Slice 5A**. O entregavel desta decisao
+  — o teste em que o usuario A recebe 404 ao pedir a analise do usuario B — esta
+  em `IsolamentoPorUsuarioIT`. O rate limit por usuario esta em
+  `LimitadorDeUpload`, com Redis no `docker-compose.yml`.
+
+  A slice 5A foi criada porque esta decisao estava aceita sem dono no plano: a
+  tabela do §7 ia da 5 direto para IA.
 - **Decisao original:** D4 de `docs/architecture/fase-0.md`
 
 ## Contexto

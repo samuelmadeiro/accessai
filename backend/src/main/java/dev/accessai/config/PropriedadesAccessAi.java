@@ -10,9 +10,23 @@ import org.springframework.util.unit.DataSize;
  */
 @ConfigurationProperties(prefix = "accessai")
 public record PropriedadesAccessAi(Upload upload, Kafka kafka, Score score,
-                                   Outbox outbox, MlService mlService) {
+                                   Outbox outbox, MlService mlService,
+                                   RateLimit rateLimit) {
 
     public record Upload(DataSize tamanhoMaximo) {
+    }
+
+    /**
+     * Teto de uploads por usuario numa janela (D4).
+     *
+     * <p>Upload e caro: extracao de OOXML, seis regras, chamada ao ML e — a
+     * partir da Slice 6 — custo de LLM. Sem teto, uma conta sozinha consome o
+     * orcamento de todas.
+     *
+     * @param uploadsPorJanela quantos uploads a conta pode fazer na janela
+     * @param janelaSegundos   tamanho da janela
+     */
+    public record RateLimit(int uploadsPorJanela, long janelaSegundos) {
     }
 
     /**

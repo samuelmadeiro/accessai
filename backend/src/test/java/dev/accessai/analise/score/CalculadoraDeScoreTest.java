@@ -219,7 +219,8 @@ class CalculadoraDeScoreTest {
                                 robusto),
                         new PropriedadesAccessAi.Score.Penalidades(25, 15, 8, 3)),
                 new PropriedadesAccessAi.Outbox(500, 50, 2_000, 10_000, 10),
-                new PropriedadesAccessAi.MlService("http://localhost:8000", 500, 1500));
+                new PropriedadesAccessAi.MlService("http://localhost:8000", 500, 1500),
+                new PropriedadesAccessAi.RateLimit(30, 3600));
         return new CalculadoraDeScore(propriedades);
     }
 }

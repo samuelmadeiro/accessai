@@ -55,6 +55,17 @@
     </dependency>
 
     <!--
+      Redis entra aqui, e nao na Slice 1, porque so agora ele tem funcao: rate
+      limit POR USUARIO exige que usuario exista. O D4 lista tres usos — este,
+      a deduplicacao de consumer (que ficou no Postgres, e o §5 permite) e o
+      contador de gasto de LLM da Slice 6.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+
+    <!--
       Mesma armadilha do Flyway: spring-kafka e a biblioteca; a autoconfiguracao
       que le spring.kafka.* e cria KafkaTemplate e a fabrica de @KafkaListener
       vem deste modulo. Tambem nao ha starter.
