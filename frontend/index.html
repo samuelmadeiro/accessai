@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AccessAI — enviar documento para análise de acessibilidade</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <!--
+    O link de pular vem antes de tudo e so aparece no foco. Sem ele, quem navega
+    por teclado atravessa o cabecalho inteiro em toda pagina para chegar ao
+    conteudo.
+  -->
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header>
+    <p class="marca">AccessAI</p>
+  </header>
+
+  <main id="conteudo">
+    <h1>Analisar a acessibilidade de um documento</h1>
+
+    <p class="intro">
+      Envie um arquivo <code>.docx</code>. O AccessAI aponta os problemas de
+      acessibilidade, cita o critério WCAG de cada um e devolve um score
+      explicável.
+    </p>
+
+    <!--
+      `aria-live="polite"` e nao `assertive`: o aviso interrompe a leitura em
+      curso no assertive, e nenhuma mensagem daqui e urgente a esse ponto.
+      A regiao existe vazia desde o carregamento — criada depois, ela nao e
+      anunciada pelo leitor de tela.
+    -->
+    <p id="aviso" class="aviso" role="status" aria-live="polite"></p>
+
+    <section aria-labelledby="titulo-conta" id="secao-conta">
+      <h2 id="titulo-conta">Entrar na sua conta</h2>
+
+      <form id="form-conta" novalidate>
+        <div class="campo">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" name="email" autocomplete="email"
+                 required aria-describedby="erro-email">
+          <!--
+            O erro tem id proprio e e apontado por aria-describedby: assim ele e
+            lido junto do campo, e nao como um texto solto na pagina.
+          -->
+          <span class="erro-campo" id="erro-email"></span>
+        </div>
+
+        <div class="campo">
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" name="senha"
+                 autocomplete="current-password" required
+                 aria-describedby="ajuda-senha erro-senha">
+          <span class="ajuda" id="ajuda-senha">Mínimo de 8 caracteres.</span>
+          <span class="erro-campo" id="erro-senha"></span>
+        </div>
+
+        <div class="acoes">
+          <button type="submit" id="botao-entrar">Entrar</button>
+          <button type="button" id="botao-criar">Criar conta</button>
+        </div>
+      </form>
+    </section>
+
+    <!--
+      `hidden` de verdade, e nao `display:none` via classe: o atributo tira o
+      elemento da ordem de tabulacao e da arvore de acessibilidade de uma vez.
+    -->
+    <section aria-labelledby="titulo-envio" id="secao-envio" hidden>
+      <h2 id="titulo-envio">Enviar documento</h2>
+
+      <p id="conta-atual" class="conta-atual"></p>
+
+      <form id="form-envio" novalidate>
+        <div class="campo">
+          <label for="arquivo">Arquivo .docx</label>
+          <input type="file" id="arquivo" name="arquivo" accept=".docx"
+                 required aria-describedby="ajuda-arquivo erro-arquivo">
+          <span class="ajuda" id="ajuda-arquivo">
+            Somente .docx. O tipo é conferido pelo conteúdo, não pela extensão.
+          </span>
+          <span class="erro-campo" id="erro-arquivo"></span>
+        </div>
+
+        <div class="acoes">
+          <button type="submit" id="botao-enviar">Enviar para análise</button>
+          <button type="button" id="botao-sair">Sair da conta</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      A régua deste projeto é o
+      <a href="https://www.w3.org/TR/wcag2ict-22/">WCAG2ICT</a>, uma Group Note
+      informativa do W3C: ela não é norma e não estabelece requisitos de
+      conformidade.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+  <script src="entrada.js"></script>
+</body>
+</html>

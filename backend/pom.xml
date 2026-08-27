@@ -216,6 +216,17 @@
           <include>heuristica-alt.golden.json</include>
         </includes>
       </resource>
+      <!--
+        O frontend da Slice 8 mora em frontend/, fora do modulo, porque ele nao
+        e codigo Java (CONTRIBUTING.md secao 10). Copiar para static/ o serve
+        pelo proprio Boot: sem npm, sem bundler e sem um segundo container so
+        para entregar quatro arquivos. E o mesmo mecanismo que ja traz a tabela
+        WCAG de docs/wcag.
+      -->
+      <resource>
+        <directory>${project.basedir}/../frontend</directory>
+        <targetPath>static</targetPath>
+      </resource>
     </resources>
     <plugins>
       <plugin>

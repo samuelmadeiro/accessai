@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AccessAI — resultado da análise</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header>
+    <p class="marca">AccessAI</p>
+    <nav aria-label="Navegação principal">
+      <a href="index.html">Enviar outro documento</a>
+    </nav>
+  </header>
+
+  <main id="conteudo">
+    <h1 id="titulo-analise">Resultado da análise</h1>
+
+    <!--
+      A situacao muda sozinha enquanto o backend processa. Sem regiao viva, quem
+      usa leitor de tela ficaria numa pagina que muda em silencio — e o unico
+      jeito de saber seria recarregar.
+    -->
+    <p id="situacao" class="situacao" role="status" aria-live="polite">
+      Carregando a análise.
+    </p>
+
+    <section aria-labelledby="titulo-score" id="secao-score" hidden>
+      <h2 id="titulo-score">Score</h2>
+
+      <p class="score-global">
+        <span id="score-numero" class="score-numero"></span>
+        <span class="score-legenda">de 100 pontos</span>
+      </p>
+
+      <!--
+        O que 100 significa fica ao lado do numero, e nao numa nota de rodape:
+        "sem problema no que foi medido" nao e a mesma coisa que "acessivel", e
+        essa distincao e o proprio produto.
+      -->
+      <p id="score-ressalva" class="ressalva"></p>
+
+      <table id="tabela-categorias">
+        <caption>Nota por princípio WCAG, com o caminho até cada uma</caption>
+        <thead>
+          <tr>
+            <th scope="col">Princípio</th>
+            <th scope="col">Nota</th>
+            <th scope="col">Problemas</th>
+            <th scope="col">Penalidade</th>
+          </tr>
+        </thead>
+        <tbody id="corpo-categorias"></tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="titulo-problemas" id="secao-problemas" hidden>
+      <h2 id="titulo-problemas">Problemas encontrados</h2>
+      <p id="contagem-problemas" class="contagem"></p>
+      <ul id="lista-problemas" class="lista-problemas"></ul>
+    </section>
+
+    <section aria-labelledby="titulo-recomendacoes" id="secao-recomendacoes" hidden>
+      <h2 id="titulo-recomendacoes">Recomendações</h2>
+
+      <p id="procedencia-recomendacoes" class="procedencia"></p>
+
+      <div class="acoes">
+        <button type="button" id="botao-recomendar">Gerar recomendações</button>
+      </div>
+
+      <p id="aviso-recomendacoes" class="aviso" role="status" aria-live="polite"></p>
+      <ul id="lista-recomendacoes" class="lista-recomendacoes"></ul>
+    </section>
+
+    <section aria-labelledby="titulo-copiloto" id="secao-copiloto" hidden>
+      <h2 id="titulo-copiloto">Conversar sobre esta análise</h2>
+
+      <p class="intro">
+        O copiloto responde apenas sobre o que esta análise mediu. Pergunta sobre
+        critério não verificado é recusada, em vez de respondida por aproximação.
+      </p>
+
+      <!--
+        `aria-live="polite"` no historico: a resposta chega depois da requisicao,
+        e sem isso ela apareceria na tela sem ser anunciada. O foco NAO e movido
+        para ca — mover foco a cada resposta tiraria a pessoa do campo de
+        digitacao no meio da conversa.
+      -->
+      <ol id="conversa" class="conversa" aria-live="polite"></ol>
+
+      <form id="form-pergunta" novalidate>
+        <div class="campo">
+          <label for="pergunta">Sua pergunta</label>
+          <input type="text" id="pergunta" name="pergunta"
+                 autocomplete="off" required aria-describedby="erro-pergunta">
+          <span class="erro-campo" id="erro-pergunta"></span>
+        </div>
+        <div class="acoes">
+          <button type="submit" id="botao-perguntar">Perguntar</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      A régua deste projeto é o
+      <a href="https://www.w3.org/TR/wcag2ict-22/">WCAG2ICT</a>, uma Group Note
+      informativa do W3C: ela não é norma e não estabelece requisitos de
+      conformidade.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+  <script src="resultado.js"></script>
+</body>
+</html>

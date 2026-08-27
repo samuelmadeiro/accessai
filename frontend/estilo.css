@@ -1,0 +1,310 @@
+/*
+  Sem framework e sem build. A folha inteira cabe numa leitura, e cada regra que
+  toca acessibilidade esta comentada com o motivo — este e o projeto que audita
+  acessibilidade, entao a propria interface e evidencia.
+
+  As cores foram escolhidas pela razao de contraste, nao pelo gosto:
+  #1b1f24 sobre #ffffff da 15.8:1, e #0b5cab sobre #ffffff da 6.3:1. O minimo do
+  1.4.3 e 4.5:1 para texto normal.
+*/
+
+:root {
+  --tinta: #1b1f24;
+  --fundo: #ffffff;
+  --fundo-suave: #f2f4f7;
+  --borda: #6b727c;
+  --acao: #0b5cab;
+  --acao-tinta: #ffffff;
+  --erro: #a4262c;   /* 6.2:1 sobre branco */
+  --alerta: #7a4b00; /* 6.4:1 sobre branco */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  /* Corpo em 1.125rem: 16px e o piso, nao a meta. */
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+/*
+  O link de pular sai da tela ate receber foco. `display:none` o tiraria da
+  ordem de tabulacao — que e justamente o que ele existe para usar.
+*/
+.pular {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--acao);
+  color: var(--acao-tinta);
+  padding: 0.75rem 1rem;
+  z-index: 10;
+}
+
+.pular:focus {
+  left: 0;
+}
+
+/*
+  Foco visivel e grosso, com deslocamento. O padrao de varios navegadores e um
+  contorno fino que some sobre fundo claro; remover o outline sem por outra
+  coisa no lugar e o defeito de acessibilidade mais comum em CSS.
+*/
+:focus-visible {
+  outline: 3px solid var(--acao);
+  outline-offset: 2px;
+}
+
+header,
+footer,
+main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--borda);
+}
+
+.marca {
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+footer {
+  border-top: 1px solid var(--borda);
+  font-size: 0.95rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.3;
+}
+
+h2 {
+  font-size: 1.35rem;
+  margin-top: 2rem;
+}
+
+a {
+  color: var(--acao);
+}
+
+section {
+  margin-bottom: 2.5rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  max-width: 32rem;
+}
+
+label {
+  font-weight: 600;
+}
+
+input {
+  font: inherit;
+  padding: 0.6rem 0.7rem;
+  border: 2px solid var(--borda);
+  border-radius: 4px;
+  background: var(--fundo);
+  color: var(--tinta);
+}
+
+/*
+  `aria-invalid` e o estado; a borda vermelha e so o reflexo dele. Marcar o erro
+  apenas pela cor deixaria de fora quem nao distingue vermelho — o 1.4.1 pede
+  que a cor nunca seja o unico portador da informacao, e por isso o texto do erro
+  aparece junto.
+*/
+input[aria-invalid="true"] {
+  border-color: var(--erro);
+}
+
+.ajuda {
+  font-size: 0.95rem;
+}
+
+.erro-campo:not(:empty) {
+  color: var(--erro);
+  font-weight: 600;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.6rem 1.1rem;
+  border: 2px solid var(--acao);
+  border-radius: 4px;
+  background: var(--acao);
+  color: var(--acao-tinta);
+  cursor: pointer;
+  /* 44px de alvo: o tamanho minimo confortavel para quem tem tremor ou usa toque. */
+  min-height: 2.75rem;
+}
+
+button[type="button"] {
+  background: var(--fundo);
+  color: var(--acao);
+}
+
+button[disabled] {
+  /* Sem opacidade baixa: ela derrubaria o contraste do texto do botao. */
+  border-color: var(--borda);
+  background: var(--fundo-suave);
+  color: var(--tinta);
+  cursor: not-allowed;
+}
+
+.aviso:not(:empty),
+.situacao {
+  background: var(--fundo-suave);
+  border-left: 4px solid var(--acao);
+  padding: 0.75rem 1rem;
+}
+
+.aviso.erro:not(:empty) {
+  border-left-color: var(--erro);
+  color: var(--erro);
+  font-weight: 600;
+}
+
+.score-global {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.score-numero {
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.ressalva {
+  background: var(--fundo-suave);
+  border-left: 4px solid var(--alerta);
+  padding: 0.75rem 1rem;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+}
+
+th,
+td {
+  border: 1px solid var(--borda);
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+}
+
+thead th {
+  background: var(--fundo-suave);
+}
+
+.lista-problemas,
+.lista-recomendacoes {
+  list-style: none;
+  padding: 0;
+}
+
+.lista-problemas li,
+.lista-recomendacoes li {
+  border: 1px solid var(--borda);
+  border-left: 4px solid var(--alerta);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.criterio {
+  font-weight: 700;
+}
+
+.evidencia {
+  background: var(--fundo-suave);
+  padding: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.conversa {
+  list-style: none;
+  padding: 0;
+}
+
+.conversa li {
+  border: 1px solid var(--borda);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.conversa .assistente {
+  background: var(--fundo-suave);
+}
+
+.papel {
+  font-weight: 700;
+  display: block;
+}
+
+.procedencia {
+  font-weight: 600;
+}
+
+/*
+  Quem pediu menos movimento no sistema operacional recebe menos movimento. Nao
+  ha animacao decorativa aqui, mas a regra fica: ela e o padrao que qualquer
+  transicao futura precisa respeitar (2.3.3).
+*/
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+  O modo escuro segue a preferencia do sistema. Os pares foram conferidos:
+  #e8eaed sobre #14171a da 13.6:1, e #7db3f0 sobre #14171a da 7.9:1.
+*/
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tinta: #e8eaed;
+    --fundo: #14171a;
+    --fundo-suave: #1f2429;
+    --borda: #8b939c;
+    --acao: #7db3f0;
+    --acao-tinta: #10161c;
+    --erro: #f28b82;
+    --alerta: #e0b35c;
+  }
+}

@@ -79,6 +79,14 @@ public class SegurancaConfig {
                         // nao tem como se autenticar. `/actuator/**` inteiro NAO
                         // e liberado: metrics e env expoem configuracao.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        // O frontend da Slice 8. Sao arquivos estaticos, sem
+                        // dado de ninguem dentro: o que eles fazem e pedir o
+                        // token e chamar a API, que continua exigindo
+                        // autenticacao em toda rota de analise. Exigir token
+                        // para baixar a propria tela de login seria circular.
+                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/analise.html",
+                                "/estilo.css", "/app.js", "/entrada.js", "/resultado.js")
+                        .permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.decoder(decoder())))
                 // 401 puro em vez do redirecionamento para pagina de login, que e
