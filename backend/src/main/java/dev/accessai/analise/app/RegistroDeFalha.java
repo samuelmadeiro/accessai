@@ -65,7 +65,9 @@ public class RegistroDeFalha {
      * duas falhas para a mesma analise so poluiria o diagnostico.
      */
     @Transactional
-    public void registrar(@NonNull AnaliseSolicitadaV1 evento, String topicoOriginal, String excecao,
+    public void registrar(@NonNull AnaliseSolicitadaV1 evento,
+                          String topicoOriginal,
+                          String excecao,
                           String mensagemDeErro) {
         if (dltRepository.existsByEventoId(evento.eventId())) {
             log.info("evento {} ja registrado na DLT, ignorando", evento.eventId());

@@ -40,7 +40,7 @@ public class ValidadorDeDocx {
     public String detectarTipo(byte @NonNull [] conteudo) {
         if (conteudo.length < ASSINATURA_ZIP.length
                 || conteudo[0] != ASSINATURA_ZIP[0] || conteudo[1] != ASSINATURA_ZIP[1]) {
-            throw new DocumentoInvalidoException(//Outro processo de documento nao válido
+            throw new DocumentoInvalidoException(
                     "conteudo nao e um pacote zip (assinatura PK ausente)");
         }
 
