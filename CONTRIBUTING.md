@@ -272,6 +272,19 @@ Construímos fatias finas que atravessam o sistema inteiro e funcionam.
 > turno** e não uma vez por conversa, teto de gasto, histórico e procedência —,
 > não a qualidade da conversa. Isso continua travado no ADR 0005.
 
+> **A Slice 8 foi ENTREGUE e NÃO está fechada.** `frontend/` existe, é servido
+> pelo próprio Boot e cobre o sistema inteiro pela tela: conta, upload, score por
+> princípio, problemas, recomendações e copiloto. `AcessibilidadeDoFrontendTest`
+> audita a própria interface no build — `lang`, rótulo por campo, link de pular,
+> `tabindex`, região viva, tabela com escopo e ausência de `innerHTML`.
+>
+> **O que falta é metade do critério de pronto.** O §7 pede navegação por teclado
+> *testada com leitor de tela*. A navegação por teclado foi verificada no
+> navegador, com a ordem de tabulação e o foco conferidos elemento a elemento; o
+> teste com NVDA ou Narrator é manual e ainda não aconteceu. A ativação por Enter
+> e Espaço também não pôde ser reproduzida na automação. Enquanto isso não
+> ocorrer, a slice fica aberta — o detalhe está em `docs/journal/08-slice.md`.
+
 Regra: **um slice por vez, commitado e verde antes do próximo.** Se eu pedir
 para pular, me lembre desta linha.
 
@@ -344,7 +357,9 @@ accessai/
 └── .env.example      o .env real nunca é commitado
 ```
 
-**O que ainda não existe, e quando existe:** `frontend/` é a Slice 8. Não há
+**O que ainda não existe, e quando existe:** `frontend/` chegou com a Slice 8 —
+HTML, CSS e JavaScript servidos pelo Boot, sem npm e sem etapa de build; o Maven
+copia a pasta para `static/` como já faz com a tabela WCAG. Não há
 `infrastructure/` — Postgres, Kafka e ML Service estão no `docker-compose.yml`
 da raiz, e separar em pasta própria só se paga quando houver mais de um arquivo
 de infraestrutura. `spike/` fica no repositório de propósito: ele é a evidência

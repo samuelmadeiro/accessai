@@ -5,7 +5,7 @@ para critérios WCAG, com evidência rastreável até o ponto exato do documento
 
 ---
 
-## Estado atual: Slices 0 a 7 fechadas
+## Estado atual: Slices 0 a 7 fechadas, 8 entregue
 
 Este README descreve **o que existe e roda hoje**, não o que está planejado.
 O projeto é construído em fatias verticais finas (`CONTRIBUTING.md` §7), uma por vez.
